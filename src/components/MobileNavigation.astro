@@ -1,0 +1,217 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+import type { Locale, NavItem } from "./types";
+
+interface Props {
+  lang: Locale;
+  items: NavItem[];
+  activePath: string;
+  navigationLabel: string;
+}
+
+const { lang, items, activePath, navigationLabel } = Astro.props;
+
+const normalizePath = (path: string) => {
+  const cleanPath = path.split(/[?#]/, 1)[0] || "/";
+  return cleanPath === "/" ? cleanPath : cleanPath.replace(/\/+$/, "");
+};
+
+const currentPath = normalizePath(activePath);
+const isActive = (item: NavItem) => {
+  const itemPath = normalizePath(item.href);
+  return item.exact
+    ? currentPath === itemPath
+    : currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
+};
+
+const findBySuffix = (suffix: string) =>
+  items.find((item) => normalizePath(item.href).endsWith(suffix));
+
+const preferredPrimary = [
+  items.find((item) => item.exact) ?? items[0],
+  findBySuffix("/projects"),
+  findBySuffix("/research"),
+  findBySuffix("/blog"),
+].filter((item): item is NavItem => Boolean(item));
+
+const primaryItems = Array.from(new Set(preferredPrimary));
+for (const item of items) {
+  if (primaryItems.length >= 4) break;
+  if (!primaryItems.includes(item)) primaryItems.push(item);
+}
+
+const overflowItems = items.filter((item) => !primaryItems.includes(item));
+const overflowActive = overflowItems.some(isActive);
+const moreLabel = lang === "zh" ? "更多" : "More";
+const moreTitle = lang === "zh" ? "更多页面" : "More pages";
+const closeLabel = lang === "zh" ? "关闭更多页面" : "Close more pages";
+const dialogId = `mobile-more-navigation-${lang}`;
+---
+
+<nav
+  class="mobile-nav"
+  aria-label={navigationLabel}
+  data-mobile-nav
+  data-mobile-more-target={dialogId}
+>
+  {
+    primaryItems.map((item) => {
+      const active = isActive(item);
+      return (
+        <a
+          class:list={["mobile-nav-item", { active }]}
+          href={item.href}
+          aria-current={active ? "page" : undefined}
+        >
+          <span class="mobile-nav-indicator" aria-hidden="true">
+            {item.icon && (
+              <MaterialSymbol
+                name={item.icon}
+                filled={active}
+                weight={active ? 600 : 400}
+              />
+            )}
+          </span>
+          <span class="mobile-nav-label">{item.label}</span>
+        </a>
+      );
+    })
+  }
+
+  {
+    overflowItems.length > 0 && (
+      <button
+        class:list={["mobile-nav-item", "mobile-more-trigger", { active: overflowActive }]}
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded="false"
+        aria-controls={dialogId}
+        data-mobile-more-trigger
+      >
+        <span class="mobile-nav-indicator" aria-hidden="true">
+          <MaterialSymbol name="more_horiz" filled={overflowActive} weight={overflowActive ? 600 : 400} />
+        </span>
+        <span class="mobile-nav-label">{moreLabel}</span>
+      </button>
+    )
+  }
+</nav>
+
+{
+  overflowItems.length > 0 && (
+    <dialog
+      id={dialogId}
+      class="mobile-more-drawer"
+      aria-labelledby={`${dialogId}-title`}
+      data-mobile-more-dialog
+    >
+      <div class="mobile-more-drawer-content">
+        <header class="mobile-more-drawer-header">
+          <h2 id={`${dialogId}-title`}>{moreTitle}</h2>
+          <button
+            class="mobile-more-close"
+            type="button"
+            aria-label={closeLabel}
+            title={closeLabel}
+            data-mobile-more-close
+          >
+            <MaterialSymbol name="close" />
+          </button>
+        </header>
+
+        <nav class="mobile-more-links" aria-label={moreTitle}>
+          {overflowItems.map((item) => {
+            const active = isActive(item);
+            return (
+              <a
+                class:list={["mobile-more-link", { active }]}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                data-mobile-more-link
+              >
+                <span class="mobile-more-link-indicator" aria-hidden="true">
+                  {item.icon && (
+                    <MaterialSymbol
+                      name={item.icon}
+                      filled={active}
+                      weight={active ? 600 : 400}
+                    />
+                  )}
+                </span>
+                <span>{item.label}</span>
+              </a>
+            );
+          })}
+        </nav>
+      </div>
+    </dialog>
+  )
+}
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-mobile-nav]").forEach((navigation) => {
+    const dialogId = navigation.dataset.mobileMoreTarget;
+    const trigger = navigation.querySelector<HTMLButtonElement>("[data-mobile-more-trigger]");
+    const dialog = dialogId
+      ? document.getElementById(dialogId) as HTMLDialogElement | null
+      : null;
+
+    if (!trigger || !dialog) return;
+
+    const closeButton = dialog.querySelector<HTMLButtonElement>("[data-mobile-more-close]");
+
+    const openDialog = () => {
+      trigger.setAttribute("aria-expanded", "true");
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+      requestAnimationFrame(() => closeButton?.focus());
+    };
+
+    const closeDialog = () => {
+      if (typeof dialog.close === "function" && dialog.open) {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
+        trigger.setAttribute("aria-expanded", "false");
+        trigger.focus();
+      }
+    };
+
+    trigger.addEventListener("click", openDialog);
+    closeButton?.addEventListener("click", closeDialog);
+
+    dialog.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closeDialog();
+    });
+
+    dialog.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeDialog();
+    });
+
+    dialog.addEventListener("click", (event) => {
+      if (event.target !== dialog) return;
+      const bounds = dialog.getBoundingClientRect();
+      const inside =
+        event.clientX >= bounds.left &&
+        event.clientX <= bounds.right &&
+        event.clientY >= bounds.top &&
+        event.clientY <= bounds.bottom;
+      if (!inside) closeDialog();
+    });
+
+    dialog.querySelectorAll<HTMLAnchorElement>("[data-mobile-more-link]").forEach((link) => {
+      link.addEventListener("click", closeDialog);
+    });
+
+    dialog.addEventListener("close", () => {
+      trigger.setAttribute("aria-expanded", "false");
+      trigger.focus();
+    });
+  });
+</script>

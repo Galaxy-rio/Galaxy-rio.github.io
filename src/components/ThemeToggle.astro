@@ -1,0 +1,23 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+
+interface Props {
+  label: string;
+  class?: string;
+}
+
+const { label, class: className = "theme-toggle" } = Astro.props;
+---
+
+<button
+  class={className}
+  type="button"
+  data-theme-toggle
+  aria-label={label}
+  aria-pressed="false"
+  title={label}
+>
+  <span data-theme-icon aria-hidden="true">
+    <MaterialSymbol name="dark_mode" />
+  </span>
+</button>

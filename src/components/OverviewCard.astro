@@ -1,0 +1,45 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  href: string;
+  label?: string;
+  actionLabel: string;
+  icon?: string;
+  accent?: string;
+  count?: string | number;
+}
+
+const {
+  title,
+  description,
+  href,
+  label,
+  actionLabel,
+  icon = "arrow_outward",
+  accent,
+  count,
+} = Astro.props;
+---
+
+<a
+  class="overview-card"
+  data-accent={accent}
+  href={href}
+  aria-label={title}
+>
+  <div class="overview-card-topline">
+    {label && <span class="overview-card-label">{label}</span>}
+    {count !== undefined && <span class="overview-card-count">{count}</span>}
+  </div>
+  <div class="overview-card-copy">
+    <h2>{title}</h2>
+    <p>{description}</p>
+  </div>
+  <span class="overview-card-action">
+    <span>{actionLabel}</span>
+    <MaterialSymbol name={icon} class="overview-card-action-icon" />
+  </span>
+</a>

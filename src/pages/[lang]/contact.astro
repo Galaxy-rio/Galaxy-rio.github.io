@@ -1,0 +1,102 @@
+---
+import PageHeader from "../../components/PageHeader.astro";
+import MaterialSymbol from "../../components/MaterialSymbol.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { profile, socialLinks } from "../../data/profile";
+import { isLocale, locales, t, type Locale } from "../../i18n/config";
+
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang }: Props = Astro.props;
+
+if (!isLocale(lang)) {
+  throw new Error(`Unsupported locale: ${String(lang)}`);
+}
+
+const copy = {
+  zh: {
+    title: "联系方式",
+    description: "可以通过以下平台了解我的代码、研究与创作。",
+    email: "邮箱",
+    platforms: "更多平台",
+    platformDescriptions: {
+      github: "代码与软件项目",
+      orcid: "研究者身份与学术记录",
+      bilibili: "视频与创作",
+    },
+  },
+  en: {
+    title: "Contact",
+    description: "Find my code, research, and creative work on the platforms below.",
+    email: "Email",
+    platforms: "Elsewhere",
+    platformDescriptions: {
+      github: "Code and software projects",
+      orcid: "Researcher identity and academic record",
+      bilibili: "Videos and creative work",
+    },
+  },
+} as const;
+
+const text = copy[lang];
+const hasPublicEmail = profile.email.includes("@");
+---
+
+<BaseLayout
+  lang={lang}
+  title={text.title}
+  description={text.description}
+  activePath={Astro.url.pathname}
+>
+  <PageHeader
+    title={text.title}
+    description={text.description}
+    eyebrow={t(lang, "section.contact.kicker")}
+  />
+
+  {
+    hasPublicEmail && (
+      <section class="contact-panel page-section" aria-labelledby="email-title">
+        <div>
+          <p class="section-kicker">{text.email}</p>
+          <h2 id="email-title">{profile.email}</h2>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="page-section" aria-labelledby="platforms-title">
+    <header class="section-heading compact">
+      <div>
+        <p class="section-kicker">LINKS</p>
+        <h2 id="platforms-title">{text.platforms}</h2>
+      </div>
+    </header>
+
+    <div class="social-card-grid">
+      {
+        socialLinks.map((link, index) => (
+          <a
+            class="social-card"
+            href={link.href}
+            target="_blank"
+            rel="me external noopener noreferrer"
+          >
+            <span aria-hidden="true">0{index + 1}</span>
+            <div>
+              <strong>{link.label}</strong>
+              <small>{text.platformDescriptions[link.id]}</small>
+            </div>
+            <MaterialSymbol name="arrow_outward" />
+          </a>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

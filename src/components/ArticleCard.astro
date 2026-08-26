@@ -1,0 +1,67 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+import type { ContentLanguage } from "./types";
+
+interface Props {
+  title: string;
+  summary?: string;
+  href: string;
+  publishedAt?: string;
+  publishedLabel?: string;
+  readingTime?: string;
+  tags?: string[];
+  actionLabel: string;
+  contentLanguage?: ContentLanguage;
+  featured?: boolean;
+}
+
+const {
+  title,
+  summary,
+  href,
+  publishedAt,
+  publishedLabel,
+  readingTime,
+  tags = [],
+  actionLabel,
+  contentLanguage,
+  featured = false,
+} = Astro.props;
+---
+
+<a
+  class:list={["article-card", { featured }]}
+  href={href}
+  aria-label={title}
+>
+  <div class="article-card-meta">
+    {
+      publishedAt && (
+        <time datetime={publishedAt}>{publishedLabel ?? publishedAt}</time>
+      )
+    }
+    {readingTime && <span>{readingTime}</span>}
+    {
+      contentLanguage && (
+        <span
+          class="content-language-badge"
+          aria-label={contentLanguage.label}
+        >
+          <span lang={contentLanguage.code}>{contentLanguage.label}</span>
+        </span>
+      )
+    }
+  </div>
+
+  <div class="article-card-copy" lang={contentLanguage?.code}>
+    <h2>{title}</h2>
+    {summary && <p>{summary}</p>}
+  </div>
+
+  <div class="article-card-footer">
+    {tags.length > 0 && <ul aria-label={title}>{tags.map((tag) => <li>{tag}</li>)}</ul>}
+    <span class="concept-label">
+      {actionLabel} <MaterialSymbol name="arrow_outward" />
+    </span>
+  </div>
+</a>

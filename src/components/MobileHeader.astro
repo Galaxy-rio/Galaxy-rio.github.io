@@ -1,0 +1,48 @@
+---
+import LanguageSwitch from "./LanguageSwitch.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import type { Locale } from "./types";
+
+interface Props {
+  lang: Locale;
+  avatarSrc: string;
+  avatarAlt: string;
+  siteName: string;
+  homeHref: string;
+  brandLabel: string;
+  themeLabel: string;
+  languageLabel: string;
+  activePath: string;
+}
+
+const {
+  lang,
+  avatarSrc,
+  avatarAlt,
+  siteName,
+  homeHref,
+  brandLabel,
+  themeLabel,
+  languageLabel,
+  activePath,
+} = Astro.props;
+---
+
+<header class="mobile-topbar">
+  <a class="mobile-brand" href={homeHref} aria-label={brandLabel}>
+    <span class="mobile-brand-avatar">
+      <img src={avatarSrc} alt={avatarAlt} width="48" height="48" decoding="async" />
+    </span>
+    <strong>{siteName}</strong>
+  </a>
+  <div class="mobile-actions">
+    <LanguageSwitch
+      lang={lang}
+      label={languageLabel}
+      pathname={activePath}
+      class="mobile-language-switch"
+      compact
+    />
+    <ThemeToggle label={themeLabel} class="mobile-theme-toggle" />
+  </div>
+</header>

@@ -1,0 +1,112 @@
+---
+import { getCollection } from "astro:content";
+import EmptyState from "../../../components/EmptyState.astro";
+import PageHeader from "../../../components/PageHeader.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import {
+  isLocale,
+  localeLabels,
+  locales,
+  routeFor,
+  t,
+  type Locale,
+} from "../../../i18n/config";
+
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang }: Props = Astro.props;
+
+if (!isLocale(lang)) {
+  throw new Error(`Unsupported locale: ${String(lang)}`);
+}
+
+const projects = (await getCollection("projects", ({ data }) => !data.draft)).sort(
+  (a, b) =>
+    Number(b.data.featured) - Number(a.data.featured) ||
+    (b.data.completedAt?.getTime() ?? 0) - (a.data.completedAt?.getTime() ?? 0),
+);
+
+const copy = {
+  zh: {
+    title: "作品集",
+    description: "收录软件开发、视觉设计与研究实践。",
+    emptyTitle: "项目整理中",
+    emptyDescription: "项目内容正在整理中。",
+    featured: "精选",
+    kinds: {
+      software: "软件",
+      design: "设计",
+      research: "科研",
+      other: "其他",
+    },
+  },
+  en: {
+    title: "Portfolio",
+    description: "Selected work in software, design, and research.",
+    emptyTitle: "Projects coming soon",
+    emptyDescription: "Project details will be added soon.",
+    featured: "Featured",
+    kinds: {
+      software: "Software",
+      design: "Design",
+      research: "Research",
+      other: "Other",
+    },
+  },
+} as const;
+
+const text = copy[lang];
+const slugFromId = (id: string) => id.replace(/\.(md|mdx)$/i, "").replace(/\/index$/, "");
+---
+
+<BaseLayout
+  lang={lang}
+  title={text.title}
+  description={text.description}
+  activePath={Astro.url.pathname}
+>
+  <PageHeader
+    title={text.title}
+    description={text.description}
+    eyebrow={t(lang, "section.portfolio.kicker")}
+  />
+
+  {
+    projects.length > 0 ? (
+      <section class="project-grid page-section" aria-label={text.title}>
+        {projects.map((project, index) => (
+          <ProjectCard
+            title={project.data.title}
+            summary={project.data.summary}
+            href={routeFor(lang, `/projects/${slugFromId(project.id)}/`)}
+            number={String(index + 1).padStart(2, "0")}
+            category={text.kinds[project.data.kind]}
+            status={project.data.featured ? text.featured : undefined}
+            tags={project.data.tags}
+            actionLabel={t(lang, "actions.viewProject")}
+            contentLanguage={{
+              code: project.data.language,
+              label: localeLabels[project.data.language],
+            }}
+            accent={["violet", "orange", "blue", "green"][index % 4]}
+          />
+        ))}
+      </section>
+    ) : (
+      <div class="page-section">
+        <EmptyState
+          title={text.emptyTitle}
+          description={text.emptyDescription}
+          icon="◇"
+        />
+      </div>
+    )
+  }
+</BaseLayout>

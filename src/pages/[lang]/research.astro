@@ -1,0 +1,98 @@
+---
+import EmptyState from "../../components/EmptyState.astro";
+import MaterialSymbol from "../../components/MaterialSymbol.astro";
+import PageHeader from "../../components/PageHeader.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { researchAreas } from "../../data/profile";
+import { isLocale, locales, t, type Locale } from "../../i18n/config";
+
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang }: Props = Astro.props;
+
+if (!isLocale(lang)) {
+  throw new Error(`Unsupported locale: ${String(lang)}`);
+}
+
+const copy = {
+  zh: {
+    title: "科研",
+    description: "关注光学工程、测试技术与相关研究实践。",
+    areas: "研究方向",
+    areaDescription: "围绕光学系统、测量方法与工程应用展开探索。",
+    publications: "论文与成果",
+    publicationsDescription: "相关内容正在整理中。",
+    orcidAction: "查看 ORCID",
+  },
+  en: {
+    title: "Research",
+    description: "Research in optical engineering, testing technology, and related applications.",
+    areas: "Research areas",
+    areaDescription: "Exploring optical systems, measurement methods, and engineering applications.",
+    publications: "Publications & Outcomes",
+    publicationsDescription: "Publications and research outcomes will be added here.",
+    orcidAction: "View ORCID",
+  },
+} as const;
+
+const text = copy[lang];
+const orcid = "https://orcid.org/0009-0000-0685-3045";
+---
+
+<BaseLayout
+  lang={lang}
+  title={text.title}
+  description={text.description}
+  activePath={Astro.url.pathname}
+>
+  <PageHeader
+    title={text.title}
+    description={text.description}
+    eyebrow={t(lang, "section.research.kicker")}
+  >
+    <a
+      slot="actions"
+      class="button button-secondary"
+      href={orcid}
+      target="_blank"
+      rel="me external noopener noreferrer"
+    >
+      {text.orcidAction} <MaterialSymbol name="arrow_outward" />
+    </a>
+  </PageHeader>
+
+  <section class="page-section" aria-labelledby="research-areas-title">
+    <header class="section-heading compact">
+      <div>
+        <p class="section-kicker">{t(lang, "section.research.kicker")}</p>
+        <h2 id="research-areas-title">{text.areas}</h2>
+      </div>
+      <p>{text.areaDescription}</p>
+    </header>
+
+    <div class="research-area-grid">
+      {
+        researchAreas.map((area, index) => (
+          <article class="research-area-card">
+            <span aria-hidden="true">0{index + 1}</span>
+            <h3>{area.name[lang]}</h3>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <div class="page-section">
+    <EmptyState
+      title={text.publications}
+      description={text.publicationsDescription}
+      icon="◉"
+    />
+  </div>
+</BaseLayout>

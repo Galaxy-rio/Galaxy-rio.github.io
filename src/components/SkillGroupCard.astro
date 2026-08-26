@@ -1,0 +1,47 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+import type { SkillItem } from "./types";
+
+interface Props {
+  title: string;
+  skills: Array<string | SkillItem>;
+  description?: string;
+  icon?: string;
+  accent?: string;
+}
+
+const { title, skills, description, icon = "construction", accent } = Astro.props;
+const normalizedSkills = skills.map((skill) =>
+  typeof skill === "string" ? { name: skill } : skill,
+);
+const skillIconAliases: Record<string, string> = {
+  "⌘": "code",
+  "◇": "palette",
+  "▦": "business_center",
+  "✦": "palette",
+  "◎": "precision_manufacturing",
+};
+const iconName = skillIconAliases[icon] ?? icon;
+---
+
+<article class="skill-group-card" data-accent={accent}>
+  <div class="skill-group-heading">
+    <span class="skill-group-icon" aria-hidden="true">
+      <MaterialSymbol name={iconName} />
+    </span>
+    <div>
+      <h2>{title}</h2>
+      {description && <p>{description}</p>}
+    </div>
+  </div>
+  <ul class="skill-list" aria-label={title}>
+    {
+      normalizedSkills.map((skill) => (
+        <li>
+          <span>{skill.name}</span>
+          {skill.note && <small>{skill.note}</small>}
+        </li>
+      ))
+    }
+  </ul>
+</article>

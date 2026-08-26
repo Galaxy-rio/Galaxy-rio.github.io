@@ -1,0 +1,169 @@
+---
+import { getCollection } from "astro:content";
+import HeroAsciiPortrait from "../../components/HeroAsciiPortrait.astro";
+import MaterialSymbol from "../../components/MaterialSymbol.astro";
+import OverviewCard from "../../components/OverviewCard.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { profile, researchAreas } from "../../data/profile";
+import { allSkills } from "../../data/skills";
+import {
+  isLocale,
+  locales,
+  routeFor,
+  t,
+  type Locale,
+} from "../../i18n/config";
+
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang }: Props = Astro.props;
+
+if (!isLocale(lang)) {
+  throw new Error(`Unsupported locale: ${String(lang)}`);
+}
+
+const [projects, posts] = await Promise.all([
+  getCollection("projects", ({ data }) => !data.draft),
+  getCollection("blog", ({ data }) => !data.draft),
+]);
+
+const copy = {
+  zh: {
+    title: "首页",
+    role: "计算机 · 设计 · 科研",
+    intro:
+      "我在计算机、设计与光学工程之间探索，并在这里分享项目、研究与思考。",
+    primaryAction: "浏览作品集",
+    secondaryAction: "了解我",
+    overviewTitle: "探索我的工作",
+    overviewDescription: "这里汇集了我的经历、作品、研究、文章与常用工具。",
+    resumeDescription: "个人简介、教育背景与实践经历。",
+    projectsDescription: "软件开发、视觉设计与跨领域实践。",
+    researchDescription: "光学工程、测试技术与相关学术成果。",
+    blogDescription: "学习笔记、实验记录，以及偶尔做的小玩意。",
+    skillsDescription: "编程、视觉设计、科研仿真与工程软件。",
+    contactDescription: "GitHub、ORCID 与 bilibili。",
+  },
+  en: {
+    title: "Home",
+    role: "Computing · Design · Research",
+    intro:
+      "I work across computing, design, and optical engineering, sharing projects, research, and ideas here.",
+    primaryAction: "Explore projects",
+    secondaryAction: "About me",
+    overviewTitle: "Explore my work",
+    overviewDescription: "A collection of my experience, projects, research, writing, and tools.",
+    resumeDescription: "Profile, education, and experience.",
+    projectsDescription: "Software, visual design, and interdisciplinary projects.",
+    researchDescription: "Optical engineering, testing technology, and related publications.",
+    blogDescription: "Learning notes, experiment logs, and occasional side projects.",
+    skillsDescription: "Programming, visual design, scientific simulation, and engineering tools.",
+    contactDescription: "GitHub, ORCID, and bilibili.",
+  },
+} as const;
+
+const text = copy[lang];
+const localizedName = profile.name[lang];
+const formatCount = (count: number) =>
+  lang === "zh" ? `${count} 项` : `${count} ${count === 1 ? "item" : "items"}`;
+---
+
+<BaseLayout
+  lang={lang}
+  title={text.title}
+  description={t(lang, "meta.description")}
+  activePath={Astro.url.pathname}
+>
+  <section class="home-hero page-section" aria-labelledby="home-title">
+    <div class="home-hero-copy">
+      <p class="section-kicker">{text.role}</p>
+      <h1 id="home-title">
+        <span>{t(lang, "home.greeting")}</span>
+        {localizedName}
+        <small>@{profile.handle}</small>
+      </h1>
+      <p class="hero-intro">{text.intro}</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href={routeFor(lang, "/projects/")}>
+          {text.primaryAction} <MaterialSymbol name="arrow_outward" />
+        </a>
+        <a class="button button-secondary" href={routeFor(lang, "/about/")}>
+          {text.secondaryAction}
+        </a>
+      </div>
+    </div>
+
+    <HeroAsciiPortrait />
+  </section>
+
+  <section class="page-section" aria-labelledby="overview-title">
+    <header class="section-heading compact">
+      <div>
+        <p class="section-kicker">{lang === "zh" ? "一览" : "Overview"}</p>
+        <h2 id="overview-title">{text.overviewTitle}</h2>
+      </div>
+      <p>{text.overviewDescription}</p>
+    </header>
+
+    <div class="overview-grid">
+      <OverviewCard
+        title={t(lang, "section.resume.title")}
+        description={text.resumeDescription}
+        href={routeFor(lang, "/about/")}
+        actionLabel={t(lang, "actions.readMore")}
+        label="01"
+        accent="violet"
+      />
+      <OverviewCard
+        title={t(lang, "section.portfolio.title")}
+        description={text.projectsDescription}
+        href={routeFor(lang, "/projects/")}
+        actionLabel={t(lang, "actions.viewAll")}
+        label="02"
+        count={formatCount(projects.length)}
+        accent="orange"
+      />
+      <OverviewCard
+        title={t(lang, "section.research.title")}
+        description={text.researchDescription}
+        href={routeFor(lang, "/research/")}
+        actionLabel={t(lang, "actions.readMore")}
+        label="03"
+        count={researchAreas.length}
+        accent="blue"
+      />
+      <OverviewCard
+        title={t(lang, "section.blog.title")}
+        description={text.blogDescription}
+        href={routeFor(lang, "/blog/")}
+        actionLabel={t(lang, "actions.viewAll")}
+        label="04"
+        count={formatCount(posts.length)}
+        accent="green"
+      />
+      <OverviewCard
+        title={t(lang, "section.skills.title")}
+        description={text.skillsDescription}
+        href={routeFor(lang, "/skills/")}
+        actionLabel={t(lang, "actions.viewAll")}
+        label="05"
+        count={allSkills.length}
+        accent="pink"
+      />
+      <OverviewCard
+        title={t(lang, "section.contact.title")}
+        description={text.contactDescription}
+        href={routeFor(lang, "/contact/")}
+        actionLabel={t(lang, "actions.readMore")}
+        label="06"
+        accent="yellow"
+      />
+    </div>
+  </section>
+</BaseLayout>

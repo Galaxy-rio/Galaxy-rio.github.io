@@ -1,0 +1,53 @@
+---
+import type { SocialLink } from "./types";
+
+interface Props {
+  name: string;
+  email?: string;
+  socialLinks?: readonly SocialLink[];
+  socialLabel: string;
+  copyrightText: string;
+  builtWithText?: string;
+  year?: number;
+}
+
+const {
+  name,
+  email,
+  socialLinks = [],
+  socialLabel,
+  copyrightText,
+  builtWithText,
+  year = new Date().getFullYear(),
+} = Astro.props;
+
+const hasDeliverableEmail = email?.includes("@") ?? false;
+---
+
+<footer class="site-footer">
+  <div class="site-footer-identity">
+    <strong>{name}</strong>
+    {email && (hasDeliverableEmail ? <a href={`mailto:${email}`}>{email}</a> : <span>{email}</span>)}
+  </div>
+
+  {
+    socialLinks.length > 0 && (
+      <nav class="footer-links" aria-label={socialLabel}>
+        {socialLinks.map((link) => (
+          <a
+            href={link.href}
+            target="_blank"
+            rel={`${link.rel ? `${link.rel} ` : ""}me external noopener noreferrer`}
+          >
+            {link.label}
+          </a>
+        ))}
+      </nav>
+    )
+  }
+
+  <div class="site-footer-meta">
+    <span>© {year} {name}. {copyrightText}</span>
+    {builtWithText && <span>{builtWithText}</span>}
+  </div>
+</footer>

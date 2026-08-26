@@ -1,0 +1,36 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  actionHref?: string;
+  actionLabel?: string;
+  icon?: string;
+  headingId?: string;
+}
+
+const {
+  title,
+  description,
+  actionHref,
+  actionLabel,
+  icon = "hourglass_empty",
+  headingId = "empty-state-title",
+} = Astro.props;
+---
+
+<section class="empty-state" aria-labelledby={headingId}>
+  <span class="empty-state-icon" aria-hidden="true">
+    <MaterialSymbol name={icon} />
+  </span>
+  <div>
+    <h2 id={headingId}>{title}</h2>
+    {description && <p>{description}</p>}
+  </div>
+  {
+    actionHref && actionLabel && (
+      <a class="button button-secondary" href={actionHref}>{actionLabel}</a>
+    )
+  }
+</section>

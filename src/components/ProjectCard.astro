@@ -1,0 +1,86 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+import type { ContentLanguage } from "./types";
+
+interface Props {
+  title: string;
+  summary: string;
+  tags?: string[];
+  href?: string;
+  number?: string;
+  category?: string;
+  status?: string;
+  actionLabel?: string;
+  contentLanguage?: ContentLanguage;
+  accent?: string;
+  image?: string;
+  imageAlt?: string;
+}
+
+const {
+  title,
+  summary,
+  tags = [],
+  href,
+  number,
+  category,
+  status,
+  actionLabel,
+  contentLanguage,
+  accent,
+  image,
+  imageAlt = "",
+} = Astro.props;
+
+const CardElement = href ? "a" : "article";
+const accessibleLabel = href ? title : undefined;
+---
+
+<CardElement
+  class="project-card"
+  data-accent={accent}
+  href={href}
+  aria-label={accessibleLabel}
+>
+  {
+    (image || Astro.slots.has("visual")) && (
+      <div class="project-visual">
+        {image ? <img src={image} alt={imageAlt} loading="lazy" decoding="async" /> : <slot name="visual" />}
+      </div>
+    )
+  }
+
+  <div class="project-content">
+    <div class="project-meta">
+      {number && <span>{number}</span>}
+      {category && <span>{category}</span>}
+      {status && <span>{status}</span>}
+    </div>
+
+    <div lang={contentLanguage?.code}>
+      <h2>{title}</h2>
+      <p>{summary}</p>
+    </div>
+
+    <div class="project-footer">
+      {tags.length > 0 && <ul aria-label={title}>{tags.map((tag) => <li>{tag}</li>)}</ul>}
+      {
+        contentLanguage && (
+          <span
+            class="content-language-badge"
+            aria-label={contentLanguage.label}
+          >
+            <span lang={contentLanguage.code}>{contentLanguage.label}</span>
+          </span>
+        )
+      }
+      {
+        href && actionLabel && (
+          <span class="concept-label">
+            {actionLabel} <MaterialSymbol name="arrow_outward" />
+          </span>
+        )
+      }
+    </div>
+  </div>
+</CardElement>

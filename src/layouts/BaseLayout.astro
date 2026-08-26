@@ -1,0 +1,212 @@
+---
+import "../styles/global.css";
+
+import DesktopNavigation from "../components/DesktopNavigation.astro";
+import MobileHeader from "../components/MobileHeader.astro";
+import MobileNavigation from "../components/MobileNavigation.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import type { NavItem } from "../components/types";
+import { profile, socialLinks } from "../data/profile";
+import {
+  assetPath,
+  locales,
+  routeFor,
+  switchLocalePath,
+  t,
+  type Locale,
+} from "../i18n/config";
+
+interface Props {
+  lang: Locale;
+  title: string;
+  description: string;
+  activePath?: string;
+  navItems?: NavItem[];
+  siteName?: string;
+  bodyClass?: string;
+  mainClass?: string;
+  noindex?: boolean;
+  showFooter?: boolean;
+}
+
+const {
+  lang,
+  title,
+  description,
+  activePath = Astro.url.pathname,
+  navItems,
+  siteName = t(lang, "meta.siteName"),
+  bodyClass,
+  mainClass,
+  noindex = false,
+  showFooter = true,
+} = Astro.props;
+
+const navigation: NavItem[] = navItems ?? [
+  { label: t(lang, "nav.home"), href: routeFor(lang), icon: "home", exact: true },
+  { label: t(lang, "nav.resume"), href: routeFor(lang, "/about"), icon: "badge" },
+  { label: t(lang, "nav.portfolio"), href: routeFor(lang, "/projects"), icon: "work" },
+  { label: t(lang, "nav.research"), href: routeFor(lang, "/research"), icon: "science" },
+  { label: t(lang, "nav.blog"), href: routeFor(lang, "/blog"), icon: "article" },
+  { label: t(lang, "nav.skills"), href: routeFor(lang, "/skills"), icon: "construction" },
+  { label: t(lang, "nav.contact"), href: routeFor(lang, "/contact"), icon: "mail" },
+];
+
+const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
+const htmlLang = lang === "zh" ? "zh-CN" : "en";
+const homeHref = routeFor(lang);
+const canonical = Astro.site ? new URL(activePath, Astro.site).toString() : undefined;
+const alternateLinks = locales.map((locale) => ({
+  locale,
+  href: Astro.site
+    ? new URL(switchLocalePath(activePath, locale), Astro.site).toString()
+    : switchLocalePath(activePath, locale),
+}));
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#fff7ff" data-theme-color />
+    <link rel="icon" type="image/jpeg" href={assetPath(profile.avatar.src)} />
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    {
+      alternateLinks.map(({ locale, href }) => (
+        <link rel="alternate" hreflang={locale === "zh" ? "zh-CN" : locale} href={href} />
+      ))
+    }
+    <title>{pageTitle}</title>
+    <slot name="head" />
+    <script is:inline>
+      (() => {
+        try {
+          const saved = localStorage.getItem("portfolio-theme");
+          const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.dataset.theme =
+            saved === "light" || saved === "dark"
+              ? saved
+              : prefersDark
+                ? "dark"
+                : "light";
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+  </head>
+  <body class={bodyClass}>
+    <div class="site-shell">
+      <a class="skip-link" href="#main-content">{t(lang, "a11y.skipToContent")}</a>
+
+      <DesktopNavigation
+        lang={lang}
+        items={navigation}
+        activePath={activePath}
+        brandLabel={`${t(lang, "nav.home")} · ${siteName}`}
+        avatarSrc={assetPath(profile.avatar.src)}
+        avatarAlt={profile.avatar.alt[lang]}
+        homeHref={homeHref}
+        navigationLabel={t(lang, "a11y.primaryNavigation")}
+        themeLabel={t(lang, "actions.themeToggle")}
+        languageLabel={t(lang, "actions.languageSwitch")}
+      />
+
+      <MobileHeader
+        lang={lang}
+        avatarSrc={assetPath(profile.avatar.src)}
+        avatarAlt={profile.avatar.alt[lang]}
+        siteName={siteName}
+        homeHref={homeHref}
+        brandLabel={`${t(lang, "nav.home")} · ${siteName}`}
+        themeLabel={t(lang, "actions.themeToggle")}
+        languageLabel={t(lang, "actions.languageSwitch")}
+        activePath={activePath}
+      />
+
+      <div class="site-content">
+        <main id="main-content" class:list={["page-main", mainClass]}>
+          <slot />
+        </main>
+
+        {
+          showFooter && (
+            Astro.slots.has("footer") ? (
+              <slot name="footer" />
+            ) : (
+              <SiteFooter
+                name={profile.handle}
+                email={profile.email}
+                socialLinks={socialLinks}
+                socialLabel={t(lang, "a11y.socialLinks")}
+                copyrightText={t(lang, "footer.copyright")}
+                builtWithText={t(lang, "footer.builtWith")}
+              />
+            )
+          )
+        }
+      </div>
+
+      <MobileNavigation
+        lang={lang}
+        items={navigation}
+        activePath={activePath}
+        navigationLabel={t(lang, "a11y.primaryNavigation")}
+      />
+    </div>
+
+    <script>
+      type Theme = "light" | "dark";
+
+      const root = document.documentElement;
+      const themeColor = document.querySelector<HTMLMetaElement>("[data-theme-color]");
+      const themeToggles = Array.from(
+        document.querySelectorAll<HTMLButtonElement>("[data-theme-toggle]"),
+      );
+
+      const getTheme = (): Theme => root.dataset.theme === "dark" ? "dark" : "light";
+      const updateThemeControls = (theme: Theme) => {
+        const isDark = theme === "dark";
+        themeToggles.forEach((toggle) => {
+          toggle.setAttribute("aria-pressed", String(isDark));
+          const icon = toggle.querySelector<HTMLElement>("[data-theme-icon] .material-symbol");
+          if (icon) icon.textContent = isDark ? "light_mode" : "dark_mode";
+        });
+        const surfaceColor = getComputedStyle(root)
+          .getPropertyValue("--md-sys-color-surface")
+          .trim();
+        if (surfaceColor) themeColor?.setAttribute("content", surfaceColor);
+      };
+
+      updateThemeControls(getTheme());
+      themeToggles.forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+          const nextTheme: Theme = getTheme() === "light" ? "dark" : "light";
+          root.dataset.theme = nextTheme;
+          try {
+            localStorage.setItem("portfolio-theme", nextTheme);
+          } catch {
+            // The preference remains effective for the current page when storage is unavailable.
+          }
+          updateThemeControls(nextTheme);
+        });
+      });
+
+      document.querySelectorAll<HTMLAnchorElement>("[data-language-switch]").forEach((link) => {
+        link.addEventListener("click", () => {
+          const nextLocale = link.hreflang;
+          if (nextLocale !== "zh" && nextLocale !== "en") return;
+          try {
+            localStorage.setItem("portfolio-locale", nextLocale);
+          } catch {
+            // Navigation still works when storage is unavailable.
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

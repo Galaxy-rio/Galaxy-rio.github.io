@@ -1,0 +1,52 @@
+---
+interface Props {
+  /** Material Symbols ligature name. Legacy glyphs are normalized during migration. */
+  name: string;
+  class?: string;
+  label?: string;
+  filled?: boolean;
+  weight?: number;
+  grade?: number;
+  opticalSize?: number;
+}
+
+const legacyAliases: Record<string, string> = {
+  "⌂": "home",
+  "▤": "badge",
+  "◇": "work",
+  "◎": "science",
+  "◉": "science",
+  "✎": "article",
+  "✦": "palette",
+  "⌁": "badge",
+  "⌘": "code",
+  "▦": "business_center",
+  "↗": "arrow_outward",
+  "→": "arrow_outward",
+  "←": "arrow_back",
+  "☀": "light_mode",
+  "☾": "dark_mode",
+  "文": "language",
+};
+
+const {
+  name,
+  class: className,
+  label,
+  filled = false,
+  weight = 400,
+  grade = 0,
+  opticalSize = 24,
+} = Astro.props;
+
+const symbol = legacyAliases[name] ?? name;
+const variationSettings = `'FILL' ${filled ? 1 : 0}, 'wght' ${weight}, 'GRAD' ${grade}, 'opsz' ${opticalSize}`;
+---
+
+<span
+  class:list={["material-symbols-rounded", "material-symbol", className]}
+  style={`font-variation-settings: ${variationSettings}`}
+  role={label ? "img" : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : "true"}
+>{symbol}</span>

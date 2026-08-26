@@ -1,0 +1,40 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+import {
+  localeLabels,
+  locales,
+  switchLocalePath,
+  type Locale,
+} from "../i18n/config";
+
+interface Props {
+  lang: Locale;
+  label: string;
+  pathname?: string;
+  class?: string;
+  compact?: boolean;
+}
+
+const {
+  lang,
+  label,
+  pathname = Astro.url.pathname,
+  class: className = "language-switch",
+  compact = false,
+} = Astro.props;
+
+const nextLocale = locales.find((locale) => locale !== lang) ?? lang;
+const href = switchLocalePath(pathname, nextLocale);
+---
+
+<a
+  class:list={[className, { compact }]}
+  href={href}
+  hreflang={nextLocale}
+  aria-label={`${label}: ${localeLabels[nextLocale]}`}
+  title={`${label}: ${localeLabels[nextLocale]}`}
+  data-language-switch
+>
+  <MaterialSymbol name="language" />
+  <span lang={nextLocale}>{localeLabels[nextLocale]}</span>
+</a>

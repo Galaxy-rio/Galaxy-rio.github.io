@@ -1,0 +1,113 @@
+---
+import LanguageSwitch from "./LanguageSwitch.astro";
+import MaterialSymbol from "./MaterialSymbol.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import type { Locale, NavItem } from "./types";
+
+interface Props {
+  lang: Locale;
+  items: NavItem[];
+  activePath: string;
+  brandLabel: string;
+  avatarSrc: string;
+  avatarAlt: string;
+  homeHref: string;
+  navigationLabel: string;
+  themeLabel: string;
+  languageLabel: string;
+}
+
+const {
+  lang,
+  items,
+  activePath,
+  brandLabel,
+  avatarSrc,
+  avatarAlt,
+  homeHref,
+  navigationLabel,
+  themeLabel,
+  languageLabel,
+} = Astro.props;
+
+const normalizePath = (path: string) => {
+  const cleanPath = path.split(/[?#]/, 1)[0] || "/";
+  return cleanPath === "/" ? cleanPath : cleanPath.replace(/\/+$/, "");
+};
+
+const currentPath = normalizePath(activePath);
+const isActive = (item: NavItem) => {
+  const itemPath = normalizePath(item.href);
+  return item.exact
+    ? currentPath === itemPath
+    : currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
+};
+---
+
+<aside class="navigation-rail">
+  <a class="brand-mark" href={homeHref} aria-label={brandLabel}>
+    <img
+      src={avatarSrc}
+      alt={avatarAlt}
+      width="56"
+      height="56"
+      decoding="async"
+    />
+  </a>
+
+  <nav class="rail-nav" data-rail-nav aria-label={navigationLabel}>
+    {
+      items.map((item) => {
+        const active = isActive(item);
+        return (
+          <a
+            class:list={["rail-link", { active }]}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+          >
+            <span class="rail-link-indicator" aria-hidden="true">
+              {item.icon && (
+                <MaterialSymbol
+                  name={item.icon}
+                  class="nav-icon"
+                  filled={active}
+                  weight={active ? 600 : 400}
+                />
+              )}
+            </span>
+            <span class="rail-link-label">{item.label}</span>
+          </a>
+        );
+      })
+    }
+  </nav>
+
+  <div class="rail-actions">
+    <LanguageSwitch
+      lang={lang}
+      label={languageLabel}
+      pathname={activePath}
+      class="rail-language-switch"
+      compact
+    />
+    <ThemeToggle label={themeLabel} />
+  </div>
+</aside>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-rail-nav]").forEach((navigation) => {
+    const activeItem = navigation.querySelector<HTMLElement>('[aria-current="page"]');
+
+    if (!activeItem) return;
+
+    const navigationBounds = navigation.getBoundingClientRect();
+    const activeBounds = activeItem.getBoundingClientRect();
+
+    if (activeBounds.top < navigationBounds.top || activeBounds.bottom > navigationBounds.bottom) {
+      navigation.scrollTop +=
+        activeBounds.top -
+        navigationBounds.top -
+        (navigation.clientHeight - activeBounds.height) / 2;
+    }
+  });
+</script>

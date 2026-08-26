@@ -1,0 +1,328 @@
+---
+const portrait = String.raw`                                                             -
+                                                             :=
+                      =*#-                                   =#
+                     -##%=                                  =%*=
+                  -  =#*%=         --==+++++==-            =#%===
+                 -=- *#*#-     -=+*##########%##+=-       -###-=====
+     +*=        -==--#**#-   =*#%##*+++++++++**#%%#+-    -###+ -=======
+ -+=-#*#       --==-=%+*#- =*%#**++++++++++++++++*#%%*- -*#*#-  ------=
+ **%+#=#-      -===-+#+*#-=%%*+++++++++++++++++++++*#%#=*%*#*
+ +*+##-#=      --==-*#+*####**+++++++++++++++++++++++*#%#**#=
+ -#=*%=*#-       -=-#*=+*#*+**++++++++**++++++++****+**#*+#*
+  +#*#**%+-        -###+**++*+++++++++*#++++++++#####**++*#=
+  +#**+*###=        =*###++**+++++++++*#*+++**++#++++++**##
+ -%==%+++*%#-        :*%*++#*++++++++**-#+++**+*#++****##%+
+ -%+.*#***#%=        -##++*****++++++*+-**++**++#**#+++*##=-
+ -#%++#++#*##-       -#*++*-**#+++++**==+#*+**++***+++++##+=
+  =**#*++##*+%*-     =%*+*#*#*+******-+==##+**++*+++++++##++=
+    -=+*#%+:.-#%+-   =%*+***+*+:=+==:...#+***+++*+++++++##+++-
+        -#+....+%*====%*+#-*+*:........:#+++*++**+++++++#*++++-
+         -#*....-######*+#:*+*:........:*+*=*++**+++++++#*+++=
+          -#*...=#****##**.-*=..........-*+-*++**++++++*%+++-
+           -#*.=#*****####..:............:.+*++*+++++++##+=-
+            -#*#********##:...........:....*++**++++++*%*=-
+             *#+****=#**#*+......--:.:-...-*++*+++++++##=
+             +#-+#*:****#+#.....:-:......**+**++++++**#=
+              +#:+.+#***#++#*-...........=*++**+++++++*%*
+               **.+#***##++###+=:.::....=#++*#+++++++*##%=
+               -##%*****#*+#**###**+-..:*++*##*++++*#####=
+                =-=%****#*+#***###+=#.=#++*#**########**#=
+                   +%****#+*#***#*+%==*+*##******#****#**#*-
+                    +%***#*+#*****:+**+*#******##**##**#*+##-
+                    :*#***#**#***-=+**********###***##**+++#*
+                     :*#**#=+==*=****+*******##******##*++++#+
+                      -####+***+****-+---=+*##*****####*++++*#-
+                       -##+==+*+**+=-#++==--*#****#****#+++++#*
+                       -#*=+=+*+*=*:++**##*+*#***#*****#*++++*#-
+                       *#****#=-*=+:*::-=***#*****#*****#+**++#=
+                      -#*****#:=++=+#*+=-:-+#*****##***##+*#*+#=
+                     :*#*****#.+=+=*#*****+=*******#######*%**#
+                     =%*******.*=*:=#***************#****###*#*
+                    -*#*****#=:*=*.=#********#************####=
+                    =%******#:-*=+.-#*********##**#*******#%*=
+                   -##******#.-*++.:##********#######******%=
+                   +%********.=*=*..*#********#******##****%+
+                  -##******#+..+*=..+#******####=*****#***#%+`.trimEnd();
+
+const densityRamp = "%#*+=-:.";
+---
+
+<hero-ascii-portrait
+  class="hero-ascii-portrait"
+  aria-hidden="true"
+  data-ascii-ramp={densityRamp}
+>
+  <div class="hero-ascii-stack">
+    <pre class="hero-ascii-base" data-ascii-art>{portrait}</pre>
+    <pre class="hero-ascii-tone-layer is-bright" data-ascii-tone="bright"></pre>
+    <pre class="hero-ascii-tone-layer is-light" data-ascii-tone="light"></pre>
+    <pre class="hero-ascii-tone-layer is-shade" data-ascii-tone="shade"></pre>
+    <pre class="hero-ascii-tone-layer is-dim" data-ascii-tone="dim"></pre>
+  </div>
+</hero-ascii-portrait>
+
+<script>
+  const randomBetween = (minimum: number, maximum: number) =>
+    Math.round(minimum + Math.random() * (maximum - minimum));
+  const CHARACTER_LANE_COUNT = 56;
+  const TONE_LANES = { compact: 20, medium: 24, wide: 28 } as const;
+  const TONE_LEVELS = ["bright", "light", "shade", "dim"] as const;
+  type AsciiTone = (typeof TONE_LEVELS)[number];
+
+  class HeroAsciiPortrait extends HTMLElement {
+    private art?: HTMLPreElement;
+    private toneLayers = new Map<AsciiTone, HTMLPreElement>();
+    private original = "";
+    private blankLayer = "";
+    private densityRamp = "";
+    private candidateIndexes: number[] = [];
+    private occupiedIndexes = new Set<number>();
+    private activeMutations = new Map<number, string>();
+    private activeTones = new Map<number, AsciiTone>();
+    private timers = new Set<number>();
+    private renderFrame?: number;
+    private observer?: IntersectionObserver;
+    private isVisible = !("IntersectionObserver" in window);
+    private isRunning = false;
+    private reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    private forcedColors = window.matchMedia("(forced-colors: active)");
+    private handlePageHide = () => this.stop();
+
+    connectedCallback() {
+      if (this.art) return;
+
+      this.art = this.querySelector<HTMLPreElement>("[data-ascii-art]") ?? undefined;
+      this.toneLayers.clear();
+      TONE_LEVELS.forEach((tone) => {
+        const layer = this.querySelector<HTMLPreElement>(`[data-ascii-tone="${tone}"]`);
+        if (layer) this.toneLayers.set(tone, layer);
+      });
+      this.original = this.art?.textContent ?? "";
+      this.densityRamp = this.dataset.asciiRamp ?? "";
+      this.isVisible = !("IntersectionObserver" in window);
+
+      if (!this.art || this.toneLayers.size !== TONE_LEVELS.length || !this.densityRamp) return;
+
+      this.blankLayer = this.original.replace(/[^\n]/g, " ");
+      this.toneLayers.forEach((layer) => {
+        layer.textContent = this.blankLayer;
+      });
+      this.candidateIndexes = this.collectInteriorIndexes();
+
+      document.addEventListener("visibilitychange", this.syncMotion);
+      this.reducedMotion.addEventListener("change", this.syncMotion);
+      this.forcedColors.addEventListener("change", this.syncMotion);
+      window.addEventListener("pagehide", this.handlePageHide);
+      window.addEventListener("pageshow", this.syncMotion);
+
+      if ("IntersectionObserver" in window) {
+        this.observer = new IntersectionObserver(([entry]) => {
+          this.isVisible = Boolean(entry?.isIntersecting);
+          this.syncMotion();
+        }, { rootMargin: "120px 0px", threshold: 0.05 });
+        this.observer.observe(this);
+      }
+
+      this.syncMotion();
+    }
+
+    disconnectedCallback() {
+      this.stop();
+      this.observer?.disconnect();
+      document.removeEventListener("visibilitychange", this.syncMotion);
+      this.reducedMotion.removeEventListener("change", this.syncMotion);
+      this.forcedColors.removeEventListener("change", this.syncMotion);
+      window.removeEventListener("pagehide", this.handlePageHide);
+      window.removeEventListener("pageshow", this.syncMotion);
+      this.art = undefined;
+      this.toneLayers.clear();
+    }
+
+    private collectInteriorIndexes() {
+      const indexes: number[] = [];
+      let lineOffset = 0;
+
+      this.original.split("\n").forEach((line) => {
+        const visibleColumns = Array.from(line, (character, column) =>
+          this.densityRamp.includes(character) ? column : -1,
+        ).filter((column) => column >= 0);
+        const protectedColumns = new Set([
+          ...visibleColumns.slice(0, 2),
+          ...visibleColumns.slice(-2),
+        ]);
+
+        visibleColumns.forEach((column) => {
+          if (!protectedColumns.has(column)) indexes.push(lineOffset + column);
+        });
+        lineOffset += line.length + 1;
+      });
+
+      return indexes;
+    }
+
+    private later(callback: () => void, delay: number) {
+      const timer = window.setTimeout(() => {
+        this.timers.delete(timer);
+        callback();
+      }, delay);
+      this.timers.add(timer);
+    }
+
+    private pickIndexes(count: number) {
+      const indexes: number[] = [];
+
+      for (let attempt = 0; attempt < count * 32 && indexes.length < count; attempt += 1) {
+        const candidate = this.candidateIndexes[
+          Math.floor(Math.random() * this.candidateIndexes.length)
+        ];
+        if (candidate === undefined || this.occupiedIndexes.has(candidate) || indexes.includes(candidate)) {
+          continue;
+        }
+        indexes.push(candidate);
+      }
+
+      indexes.forEach((index) => this.occupiedIndexes.add(index));
+      return indexes;
+    }
+
+    private releaseIndexes(indexes: number[]) {
+      indexes.forEach((index) => this.occupiedIndexes.delete(index));
+    }
+
+    private queueRender() {
+      if (this.renderFrame !== undefined) return;
+
+      this.renderFrame = window.requestAnimationFrame(() => {
+        this.renderFrame = undefined;
+        if (!this.art || this.toneLayers.size !== TONE_LEVELS.length) return;
+
+        const changed = Array.from(this.original);
+        this.activeMutations.forEach((character, index) => {
+          changed[index] = character;
+        });
+        this.art.textContent = changed.join("");
+
+        TONE_LEVELS.forEach((tone) => {
+          const layer = this.toneLayers.get(tone);
+          if (!layer) return;
+          const characters = Array.from(this.blankLayer);
+          this.activeTones.forEach((activeTone, index) => {
+            if (activeTone === tone) characters[index] = this.original[index] ?? " ";
+          });
+          layer.textContent = characters.join("");
+          layer.classList.toggle(
+            "is-visible",
+            Array.from(this.activeTones.values()).includes(tone),
+          );
+        });
+      });
+    }
+
+    private runCharacterLane = () => {
+      if (!this.isRunning) return;
+
+      const [index] = this.pickIndexes(1);
+      if (index === undefined) {
+        this.later(this.runCharacterLane, randomBetween(80, 220));
+        return;
+      }
+
+      const character = this.original[index] ?? "";
+      const toneIndex = this.densityRamp.indexOf(character);
+      const direction = toneIndex === 0
+        ? 1
+        : toneIndex === this.densityRamp.length - 1
+          ? -1
+          : Math.random() < 0.5
+            ? -1
+            : 1;
+      this.activeMutations.set(index, this.densityRamp[toneIndex + direction]);
+      this.queueRender();
+
+      this.later(() => {
+        this.activeMutations.delete(index);
+        this.releaseIndexes([index]);
+        this.queueRender();
+        if (this.isRunning) {
+          this.later(this.runCharacterLane, randomBetween(60, 320));
+        }
+      }, randomBetween(1200, 2200));
+    };
+
+    private runToneLane = () => {
+      if (!this.isRunning) return;
+
+      const [index] = this.pickIndexes(1);
+      if (index === undefined) {
+        this.later(this.runToneLane, randomBetween(120, 320));
+        return;
+      }
+
+      const tone = TONE_LEVELS[Math.floor(Math.random() * TONE_LEVELS.length)] ?? "shade";
+      this.activeTones.set(index, tone);
+      this.queueRender();
+
+      this.later(() => {
+        this.activeTones.delete(index);
+        this.releaseIndexes([index]);
+        this.queueRender();
+        if (this.isRunning) {
+          this.later(this.runToneLane, randomBetween(350, 800));
+        }
+      }, randomBetween(1000, 1700));
+    };
+
+    private laneCount(set: Readonly<{ compact: number; medium: number; wide: number }>) {
+      const viewportWidth = document.documentElement.clientWidth;
+      return viewportWidth < 600
+        ? set.compact
+        : viewportWidth < 840
+          ? set.medium
+          : set.wide;
+    }
+
+    private start() {
+      if (this.isRunning || this.candidateIndexes.length === 0) return;
+      this.isRunning = true;
+      for (let lane = 0; lane < CHARACTER_LANE_COUNT; lane += 1) {
+        this.later(this.runCharacterLane, randomBetween(0, 1800));
+      }
+      for (let lane = 0; lane < this.laneCount(TONE_LANES); lane += 1) {
+        this.later(this.runToneLane, randomBetween(0, 1600));
+      }
+    }
+
+    private stop() {
+      this.isRunning = false;
+      this.timers.forEach((timer) => window.clearTimeout(timer));
+      this.timers.clear();
+      this.occupiedIndexes.clear();
+      this.activeMutations.clear();
+      this.activeTones.clear();
+      if (this.renderFrame !== undefined) {
+        window.cancelAnimationFrame(this.renderFrame);
+        this.renderFrame = undefined;
+      }
+      if (this.art) this.art.textContent = this.original;
+      this.toneLayers.forEach((layer) => {
+        layer.textContent = this.blankLayer;
+        layer.classList.remove("is-visible");
+      });
+    }
+
+    private syncMotion = () => {
+      const shouldRun = this.isConnected
+        && this.isVisible
+        && document.visibilityState === "visible"
+        && !this.reducedMotion.matches
+        && !this.forcedColors.matches;
+      if (shouldRun) this.start();
+      else this.stop();
+    };
+  }
+
+  if (!customElements.get("hero-ascii-portrait")) {
+    customElements.define("hero-ascii-portrait", HeroAsciiPortrait);
+  }
+</script>

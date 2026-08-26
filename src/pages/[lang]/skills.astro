@@ -1,0 +1,65 @@
+---
+import PageHeader from "../../components/PageHeader.astro";
+import SkillGroupCard from "../../components/SkillGroupCard.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { allSkills, skillGroups } from "../../data/skills";
+import { isLocale, locales, t, type Locale } from "../../i18n/config";
+
+export function getStaticPaths() {
+  return locales.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang }: Props = Astro.props;
+
+if (!isLocale(lang)) {
+  throw new Error(`Unsupported locale: ${String(lang)}`);
+}
+
+const copy = {
+  zh: {
+    title: "技能",
+    description: `${allSkills.length} 项工具与技能，涵盖编程、视觉创作、工程设计与科研仿真。`,
+  },
+  en: {
+    title: "Skills",
+    description: `${allSkills.length} tools and skills across programming, visual creation, engineering design, and scientific simulation.`,
+  },
+} as const;
+
+const accents = ["violet", "orange", "blue", "green", "pink"];
+const icons = ["code", "sports_esports", "business_center", "palette", "precision_manufacturing"];
+const text = copy[lang];
+---
+
+<BaseLayout
+  lang={lang}
+  title={text.title}
+  description={text.description}
+  activePath={Astro.url.pathname}
+>
+  <PageHeader
+    title={text.title}
+    description={text.description}
+    eyebrow={t(lang, "section.skills.kicker")}
+  />
+
+  <section class="skill-group-grid page-section" aria-label={text.title}>
+    {
+      skillGroups.map((group, index) => (
+        <SkillGroupCard
+          title={group.title[lang]}
+          skills={group.skills.map((skill) => ({
+            name: skill.name,
+            note: skill.shortName,
+          }))}
+          icon={icons[index]}
+          accent={accents[index]}
+        />
+      ))
+    }
+  </section>
+</BaseLayout>
