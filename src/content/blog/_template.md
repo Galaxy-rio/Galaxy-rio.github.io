@@ -1,10 +1,17 @@
 ---
-title: "文章标题"
-summary: "用于博客列表的简短摘要。"
+title: "内容标题"
+summary: "用于列表页的简短摘要。"
 language: zh
-publishedAt: 2026-08-25
+translationKey:
+author: galaxyrio
+date: "2026-08-27"
+time: "00:00"
+category: learning
+series:
 tags: []
-draft: true
+featured: false
+status: draft
+links: []
 ---
 
-复制并重命名此文件后开始写作。发布前请将 `draft` 改为 `false`。
+复制并重命名此文件后开始写作。发布前请将 `status` 改为 `publish`。

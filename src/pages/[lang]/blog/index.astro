@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import ArticleCard from "../../../components/ArticleCard.astro";
 import EmptyState from "../../../components/EmptyState.astro";
 import PageHeader from "../../../components/PageHeader.astro";
+import { contentCategoryLabels } from "../../../data/contentMeta";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
   isLocale,
@@ -12,6 +13,15 @@ import {
   t,
   type Locale,
 } from "../../../i18n/config";
+import {
+  contentSlugFromId,
+  selectLocalizedEntries,
+} from "../../../utils/localizedContent";
+import {
+  compareContentDateTimeDescending,
+  contentDateTime,
+  contentDateTimeIso,
+} from "../../../utils/contentDateTime";
 
 export function getStaticPaths() {
   return locales.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -27,8 +37,13 @@ if (!isLocale(lang)) {
   throw new Error(`Unsupported locale: ${String(lang)}`);
 }
 
-const posts = (await getCollection("blog", ({ data }) => !data.draft)).sort(
-  (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime(),
+const posts = selectLocalizedEntries(
+  await getCollection("blog", ({ data }) => data.status === "publish"),
+  lang,
+).sort(
+  (a, b) =>
+    Number(b.data.featured) - Number(a.data.featured) ||
+    compareContentDateTimeDescending(a, b),
 );
 
 const copy = {
@@ -37,21 +52,22 @@ const copy = {
     description: "记录学习过程、技术实践和偶尔做的小玩意。",
     emptyTitle: "文章整理中",
     emptyDescription: "新文章会陆续更新。",
+    series: "系列",
   },
   en: {
     title: "Blog",
     description: "Notes on learning, technical experiments, and occasional side projects.",
     emptyTitle: "Posts coming soon",
     emptyDescription: "New posts will appear here.",
+    series: "Series",
   },
 } as const;
 
 const text = copy[lang];
-const slugFromId = (id: string) => id.replace(/\.(md|mdx)$/i, "").replace(/\/index$/, "");
-const dateFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
+const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
+  dateStyle: "long",
+  timeStyle: "short",
+  timeZone: "Asia/Shanghai",
 });
 ---
 
@@ -70,20 +86,22 @@ const dateFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
   {
     posts.length > 0 ? (
       <section class="article-list page-section" aria-label={text.title}>
-        {posts.map((post, index) => (
+        {posts.map((post) => (
           <ArticleCard
             title={post.data.title}
             summary={post.data.summary}
-            href={routeFor(lang, `/blog/${slugFromId(post.id)}/`)}
+            href={routeFor(lang, `/blog/${contentSlugFromId(post.id)}/`)}
             actionLabel={t(lang, "actions.readMore")}
-            publishedAt={post.data.publishedAt.toISOString()}
-            publishedLabel={dateFormatter.format(post.data.publishedAt)}
+            publishedAt={contentDateTimeIso(post.data)}
+            publishedLabel={dateTimeFormatter.format(contentDateTime(post.data))}
+            category={contentCategoryLabels[lang][post.data.category]}
+            series={post.data.series ? `${text.series}: ${post.data.series}` : undefined}
             tags={post.data.tags}
             contentLanguage={{
               code: post.data.language,
               label: localeLabels[post.data.language],
             }}
-            featured={index === 0}
+            featured={post.data.featured}
           />
         ))}
       </section>

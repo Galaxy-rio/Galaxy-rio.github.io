@@ -7,7 +7,7 @@ interface Props {
   href: string;
   label?: string;
   actionLabel: string;
-  icon?: string;
+  decorativeIcon: string;
   accent?: string;
   count?: string | number;
 }
@@ -18,7 +18,7 @@ const {
   href,
   label,
   actionLabel,
-  icon = "arrow_outward",
+  decorativeIcon,
   accent,
   count,
 } = Astro.props;
@@ -30,6 +30,13 @@ const {
   href={href}
   aria-label={title}
 >
+  <MaterialSymbol
+    name={decorativeIcon}
+    class="overview-card-decoration"
+    filled
+    weight={300}
+    opticalSize={48}
+  />
   <div class="overview-card-topline">
     {label && <span class="overview-card-label">{label}</span>}
     {count !== undefined && <span class="overview-card-count">{count}</span>}
@@ -40,6 +47,6 @@ const {
   </div>
   <span class="overview-card-action">
     <span>{actionLabel}</span>
-    <MaterialSymbol name={icon} class="overview-card-action-icon" />
+    <MaterialSymbol name="arrow_outward" class="overview-card-action-icon" />
   </span>
 </a>

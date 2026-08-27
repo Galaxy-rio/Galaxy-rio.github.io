@@ -8,6 +8,8 @@ interface Props {
   href: string;
   publishedAt?: string;
   publishedLabel?: string;
+  category?: string;
+  series?: string;
   readingTime?: string;
   tags?: string[];
   actionLabel: string;
@@ -21,6 +23,8 @@ const {
   href,
   publishedAt,
   publishedLabel,
+  category,
+  series,
   readingTime,
   tags = [],
   actionLabel,
@@ -40,6 +44,8 @@ const {
         <time datetime={publishedAt}>{publishedLabel ?? publishedAt}</time>
       )
     }
+    {category && <span>{category}</span>}
+    {series && <span>{series}</span>}
     {readingTime && <span>{readingTime}</span>}
     {
       contentLanguage && (

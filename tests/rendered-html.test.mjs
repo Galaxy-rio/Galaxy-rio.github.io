@@ -1,9 +1,224 @@
 import assert from "node:assert/strict";
 import { access, readFile, readdir, stat } from "node:fs/promises";
 import test from "node:test";
+import {
+  contentIdFromPath,
+  contentSlugFromId,
+  selectLocalizedEntries,
+} from "../src/utils/localizedContent.ts";
+import {
+  compareContentDateTimeDescending,
+  contentDateTime,
+  contentDateTimeIso,
+} from "../src/utils/contentDateTime.ts";
 
 const readOutput = (path) =>
   readFile(new URL(`../dist/${path}`, import.meta.url), "utf8");
+
+test("selects one localized version per logical content item", () => {
+  const pairedZh = {
+    id: "2026/paired.zh",
+    data: { language: "zh", translationKey: "paired" },
+  };
+  const pairedEn = {
+    id: "2026/paired.en",
+    data: { language: "en", translationKey: "paired" },
+  };
+  const chineseOnly = {
+    id: "2026/chinese-only.zh",
+    data: { language: "zh" },
+  };
+  const englishOnly = {
+    id: "2027/english-only.en",
+    data: { language: "en" },
+  };
+  const entries = [pairedZh, pairedEn, chineseOnly, englishOnly];
+
+  const zhEntries = selectLocalizedEntries(entries, "zh");
+  const enEntries = selectLocalizedEntries(entries, "en");
+
+  assert.equal(entries.length, 4);
+  assert.equal(zhEntries.length, 3);
+  assert.equal(enEntries.length, 3);
+  assert.equal(zhEntries[0], pairedZh);
+  assert.equal(enEntries[0], pairedEn);
+  assert.ok(enEntries.includes(chineseOnly));
+  assert.ok(zhEntries.includes(englishOnly));
+
+  const routes = [
+    ...zhEntries.map((entry) => `zh:${contentSlugFromId(entry.id)}`),
+    ...enEntries.map((entry) => `en:${contentSlugFromId(entry.id)}`),
+  ];
+  assert.equal(routes.length, 6);
+  assert.equal(new Set(routes).size, 6);
+  assert.deepEqual(
+    enEntries.map((entry) => contentSlugFromId(entry.id)),
+    ["2026/paired", "2026/chinese-only", "2027/english-only"],
+  );
+
+  assert.equal(contentIdFromPath("2026/paired.zh.md"), "2026/paired.zh");
+  assert.equal(contentIdFromPath("2026\\paired.en.mdx"), "2026/paired.en");
+  assert.equal(contentSlugFromId("2026/nested-post.en.md"), "2026/nested-post");
+  assert.equal(contentSlugFromId("2026/nested-post/index.zh.mdx"), "2026/nested-post");
+
+  assert.throws(
+    () =>
+      selectLocalizedEntries(
+        [
+          pairedZh,
+          { id: "2026/paired-copy.zh", data: { language: "zh", translationKey: "paired" } },
+        ],
+        "zh",
+      ),
+    /multiple zh entries/,
+  );
+  assert.throws(
+    () =>
+      selectLocalizedEntries(
+        [
+          pairedZh,
+          { id: "2027/renamed.en", data: { language: "en", translationKey: "paired" } },
+        ],
+        "en",
+      ),
+    /same relative path and base filename/,
+  );
+  assert.throws(
+    () =>
+      selectLocalizedEntries(
+        [
+          { id: "2026/collision.zh", data: { language: "zh" } },
+          { id: "2026/collision.en", data: { language: "en" } },
+        ],
+        "en",
+      ),
+    /shared by unrelated entries/,
+  );
+  assert.throws(
+    () =>
+      selectLocalizedEntries(
+        [{ id: "2026/wrong-language.en", data: { language: "zh" } }],
+        "zh",
+      ),
+    /\.en filename suffix but declares language: zh/,
+  );
+  assert.throws(() => contentSlugFromId("index.zh.md"), /safe public slug/);
+});
+
+test("orders content by the authored date and time in Shanghai", () => {
+  const morning = { id: "morning", data: { date: "2026-08-27", time: "09:15" } };
+  const evening = { id: "evening", data: { date: "2026-08-27", time: "21:30" } };
+  const nextDay = { id: "next-day", data: { date: "2026-08-28", time: "00:05" } };
+
+  assert.equal(contentDateTimeIso(evening.data), "2026-08-27T21:30:00+08:00");
+  assert.equal(contentDateTime(evening.data).toISOString(), "2026-08-27T13:30:00.000Z");
+  assert.deepEqual(
+    [morning, nextDay, evening].sort(compareContentDateTimeDescending).map(({ id }) => id),
+    ["next-day", "evening", "morning"],
+  );
+});
+
+test("wires localized content selection into collections and routes", async () => {
+  const [
+    contentConfig,
+    contentMeta,
+    dateTimeUtility,
+    home,
+    blogIndex,
+    blogDetail,
+    projectsIndex,
+    projectsDetail,
+    blogTemplate,
+    projectTemplate,
+    guide,
+  ] =
+    await Promise.all([
+      readFile(new URL("../src/content.config.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src/data/contentMeta.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src/utils/contentDateTime.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src/pages/[lang]/index.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/pages/[lang]/blog/index.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/pages/[lang]/blog/[...slug].astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/pages/[lang]/projects/index.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/pages/[lang]/projects/[...slug].astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/content/blog/_template.md", import.meta.url), "utf8"),
+      readFile(new URL("../src/content/projects/_template.md", import.meta.url), "utf8"),
+      readFile(new URL("../src/content/README.md", import.meta.url), "utf8"),
+    ]);
+
+  assert.equal((contentConfig.match(/generateId:\s*\(\{ entry \}\)/g) ?? []).length, 2);
+  assert.equal((contentConfig.match(/contentIdFromPath\(entry\)/g) ?? []).length, 2);
+  assert.equal((contentConfig.match(/pattern:\s*"\*\*\/\*\.\{md,mdx\}"/g) ?? []).length, 2);
+  assert.match(contentConfig, /translationKey:\s*optionalText/);
+  assert.match(contentConfig, /author:\s*z\.string\(\)\.trim\(\)\.min\(1\)/);
+  assert.match(contentConfig, /date,/);
+  assert.match(contentConfig, /time,/);
+  assert.match(contentConfig, /category:\s*z\.enum\(contentCategories\)/);
+  assert.match(contentConfig, /series:\s*optionalText/);
+  assert.match(contentConfig, /featured:\s*z\.boolean\(\)\.default\(false\)/);
+  assert.match(contentConfig, /status:\s*z\.enum\(publicationStatuses\)\.default\("draft"\)/);
+  assert.equal((contentConfig.match(/schema:\s*contentSchema/g) ?? []).length, 2);
+  assert.match(contentMeta, /"software"[\s\S]*"design"[\s\S]*"handcraft"[\s\S]*"research"[\s\S]*"learning"/);
+  assert.match(contentMeta, /publicationStatuses = \["draft", "publish"\]/);
+  assert.doesNotMatch(contentConfig, /"other"/);
+  assert.doesNotMatch(contentConfig, /publishedAt|updatedAt|completedAt|\bkind:|\bdraft:/);
+  assert.match(dateTimeUtility, /CONTENT_TIME_ZONE_OFFSET = "\+08:00"/);
+  assert.match(dateTimeUtility, /compareContentDateTimeDescending/);
+  assert.match(home, /selectLocalizedEntries\(allProjects, lang\)/);
+  assert.match(home, /selectLocalizedEntries\(allPosts, lang\)/);
+  assert.equal((home.match(/data\.status === "publish"/g) ?? []).length, 2);
+
+  assert.match(blogIndex, /selectLocalizedEntries\([\s\S]*?getCollection\("blog"[\s\S]*?lang,/);
+  assert.match(blogDetail, /selectLocalizedEntries\(posts, lang\)\.map/);
+  assert.match(projectsIndex, /selectLocalizedEntries\([\s\S]*?getCollection\("projects"[\s\S]*?lang,/);
+  assert.match(projectsDetail, /selectLocalizedEntries\(projects, lang\)\.map/);
+  for (const source of [blogIndex, blogDetail, projectsIndex, projectsDetail]) {
+    assert.match(source, /selectLocalizedEntries\(/);
+    assert.match(source, /contentSlugFromId\(/);
+    assert.match(source, /data\.status === "publish"/);
+    assert.match(source, /contentCategoryLabels/);
+    assert.doesNotMatch(source, /const slugFromId/);
+    assert.doesNotMatch(source, /data\.(?:draft|publishedAt|updatedAt|completedAt|kind)\b/);
+  }
+
+  assert.match(blogIndex, /featured=\{post\.data\.featured\}/);
+  assert.match(projectsIndex, /featuredLabel=\{project\.data\.featured/);
+  assert.match(blogDetail, /entry\.data\.author/);
+  assert.match(blogDetail, /entry\.data\.series/);
+  assert.match(blogDetail, /entry\.data\.links/);
+  assert.match(projectsDetail, /entry\.data\.author/);
+  assert.match(projectsDetail, /entry\.data\.series/);
+
+  const frontmatterKeys = (source) =>
+    (source.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "")
+      .split(/\r?\n/)
+      .filter((line) => /^[a-zA-Z][\w-]*:/.test(line))
+      .map((line) => line.slice(0, line.indexOf(":")));
+  const sharedTemplateKeys = [
+    "title",
+    "summary",
+    "language",
+    "translationKey",
+    "author",
+    "date",
+    "time",
+    "category",
+    "series",
+    "tags",
+    "featured",
+    "status",
+    "links",
+  ];
+  assert.deepEqual(frontmatterKeys(blogTemplate), sharedTemplateKeys);
+  assert.deepEqual(frontmatterKeys(projectTemplate), sharedTemplateKeys);
+  assert.match(blogTemplate, /status: draft/);
+  assert.match(projectTemplate, /status: draft/);
+
+  assert.match(guide, /astro-content-guide\.zh\.md/);
+  assert.match(guide, /astro-content-guide\.en\.md/);
+  assert.match(guide, /中文界面优先中文、英文界面优先英文/);
+  assert.match(guide, /status.*draft.*publish/);
+});
 
 test("builds the root language entry and both localized homepages", async () => {
   const [root, zh, en] = await Promise.all([
@@ -161,6 +376,13 @@ test("keeps the Astro architecture, content model, and design system explicit", 
   assert.match(railRule, /background:\s*var\(--md-sys-color-surface-container\)/);
   assert.doesNotMatch(railRule, /box-shadow/);
   assert.match(componentsCss, /\.overview-card:is\(:hover, :focus-visible\)/);
+  assert.match(componentsCss, /\.overview-card-decoration\s*\{/);
+  assert.match(componentsCss, /transform:\s*rotate\(15deg\)/);
+  assert.match(componentsCss, /transform:\s*rotate\(15deg\) scale\(1\.08\)/);
+  assert.doesNotMatch(componentsCss, /\.overview-card::after\s*\{/);
+  const overviewActionIconRule = componentsCss.match(/\.overview-card-action-icon\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(overviewActionIconRule, /color:\s*currentColor/);
+  assert.doesNotMatch(overviewActionIconRule, /background|border-radius/);
   assert.match(componentsCss, /a\.project-card:is\(:hover, :focus-visible\)/);
   assert.match(componentsCss, /--md-sys-shape-corner-extra-extra-large/);
   assert.match(componentsCss, /box-shadow:\s*var\(--elevation-2\)/);
@@ -246,6 +468,11 @@ test("uses one native link for each navigable content card", async () => {
 
   assert.equal((zhHome.match(/<a class="overview-card"/g) ?? []).length, 6);
   assert.doesNotMatch(zhHome, /<article class="overview-card"/);
+  assert.match(overviewCard, /class="overview-card-decoration"[\s\S]*?filled/);
+  for (const icon of ["badge", "work", "science", "article", "construction", "mail"]) {
+    assert.match(zhHome, new RegExp(`class="material-symbols-rounded material-symbol overview-card-decoration"[^>]*>${icon}<`));
+  }
+  assert.equal((zhHome.match(/>arrow_outward<\/span>/g) ?? []).length, 7);
 });
 
 test("keeps generated internal links and assets resolvable", async () => {

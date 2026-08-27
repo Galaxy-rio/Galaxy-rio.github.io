@@ -1,6 +1,7 @@
 ---
 import { getCollection, render, type CollectionEntry } from "astro:content";
 import MaterialSymbol from "../../../components/MaterialSymbol.astro";
+import { contentCategoryLabels } from "../../../data/contentMeta";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
   assetPath,
@@ -9,15 +10,21 @@ import {
   routeFor,
   type Locale,
 } from "../../../i18n/config";
-
-const slugFromId = (id: string) => id.replace(/\.(md|mdx)$/i, "").replace(/\/index$/, "");
+import {
+  contentSlugFromId,
+  selectLocalizedEntries,
+} from "../../../utils/localizedContent";
+import {
+  contentDateTime,
+  contentDateTimeIso,
+} from "../../../utils/contentDateTime";
 
 export async function getStaticPaths() {
-  const projects = await getCollection("projects", ({ data }) => !data.draft);
+  const projects = await getCollection("projects", ({ data }) => data.status === "publish");
 
-  return projects.flatMap((entry) =>
-    locales.map((lang) => ({
-      params: { lang, slug: slugFromId(entry.id) },
+  return locales.flatMap((lang) =>
+    selectLocalizedEntries(projects, lang).map((entry) => ({
+      params: { lang, slug: contentSlugFromId(entry.id) },
       props: { lang, entry },
     })),
   );
@@ -34,35 +41,32 @@ const { Content } = await render(entry);
 const copy = {
   zh: {
     back: "返回作品集",
-    completed: "完成于",
-    links: "项目链接",
+    published: "发布于",
+    author: "作者",
+    category: "类别",
+    series: "系列",
+    links: "相关链接",
     tags: "标签",
-    kinds: {
-      software: "软件项目",
-      design: "设计项目",
-      research: "科研项目",
-      other: "其他项目",
-    },
   },
   en: {
     back: "Back to portfolio",
-    completed: "Completed",
-    links: "Project links",
+    published: "Published",
+    author: "Author",
+    category: "Category",
+    series: "Series",
+    links: "Related links",
     tags: "Tags",
-    kinds: {
-      software: "Software project",
-      design: "Design project",
-      research: "Research project",
-      other: "Other project",
-    },
   },
 } as const;
 
 const text = copy[lang];
-const dateFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
-  year: "numeric",
-  month: "long",
+const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
+  dateStyle: "long",
+  timeStyle: "short",
+  timeZone: "Asia/Shanghai",
 });
+const publishedAt = contentDateTime(entry.data);
+const publishedAtIso = contentDateTimeIso(entry.data);
 const cover = entry.data.cover
   ? /^https?:\/\//i.test(entry.data.cover)
     ? entry.data.cover
@@ -82,19 +86,19 @@ const cover = entry.data.cover
         <MaterialSymbol name="arrow_back" /> {text.back}
       </a>
       <div class="content-detail-meta" lang={lang}>
-        <span>{text.kinds[entry.data.kind]}</span>
+        <span>{text.author}: {entry.data.author}</span>
+        <span>{text.category}: {contentCategoryLabels[lang][entry.data.category]}</span>
+        <span>
+          {text.published}: <time datetime={publishedAtIso}>
+            {dateTimeFormatter.format(publishedAt)}
+          </time>
+        </span>
+        {
+          entry.data.series && <span>{text.series}: {entry.data.series}</span>
+        }
         <span class="content-language-badge" lang={entry.data.language}>
           {localeLabels[entry.data.language]}
         </span>
-        {
-          entry.data.completedAt && (
-            <span>
-              {text.completed}: <time datetime={entry.data.completedAt.toISOString()}>
-                {dateFormatter.format(entry.data.completedAt)}
-              </time>
-            </span>
-          )
-        }
       </div>
       <h1>{entry.data.title}</h1>
       <p class="content-detail-summary">{entry.data.summary}</p>

@@ -9,7 +9,10 @@ interface Props {
   href?: string;
   number?: string;
   category?: string;
-  status?: string;
+  featuredLabel?: string;
+  publishedAt?: string;
+  publishedLabel?: string;
+  series?: string;
   actionLabel?: string;
   contentLanguage?: ContentLanguage;
   accent?: string;
@@ -24,7 +27,10 @@ const {
   href,
   number,
   category,
-  status,
+  featuredLabel,
+  publishedAt,
+  publishedLabel,
+  series,
   actionLabel,
   contentLanguage,
   accent,
@@ -53,8 +59,14 @@ const accessibleLabel = href ? title : undefined;
   <div class="project-content">
     <div class="project-meta">
       {number && <span>{number}</span>}
+      {
+        publishedAt && (
+          <time datetime={publishedAt}>{publishedLabel ?? publishedAt}</time>
+        )
+      }
       {category && <span>{category}</span>}
-      {status && <span>{status}</span>}
+      {series && <span>{series}</span>}
+      {featuredLabel && <span>{featuredLabel}</span>}
     </div>
 
     <div lang={contentLanguage?.code}>

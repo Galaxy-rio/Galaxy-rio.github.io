@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import EmptyState from "../../../components/EmptyState.astro";
 import PageHeader from "../../../components/PageHeader.astro";
 import ProjectCard from "../../../components/ProjectCard.astro";
+import { contentCategoryLabels } from "../../../data/contentMeta";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
   isLocale,
@@ -12,6 +13,15 @@ import {
   t,
   type Locale,
 } from "../../../i18n/config";
+import {
+  contentSlugFromId,
+  selectLocalizedEntries,
+} from "../../../utils/localizedContent";
+import {
+  compareContentDateTimeDescending,
+  contentDateTime,
+  contentDateTimeIso,
+} from "../../../utils/contentDateTime";
 
 export function getStaticPaths() {
   return locales.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -27,43 +37,40 @@ if (!isLocale(lang)) {
   throw new Error(`Unsupported locale: ${String(lang)}`);
 }
 
-const projects = (await getCollection("projects", ({ data }) => !data.draft)).sort(
+const projects = selectLocalizedEntries(
+  await getCollection("projects", ({ data }) => data.status === "publish"),
+  lang,
+).sort(
   (a, b) =>
     Number(b.data.featured) - Number(a.data.featured) ||
-    (b.data.completedAt?.getTime() ?? 0) - (a.data.completedAt?.getTime() ?? 0),
+    compareContentDateTimeDescending(a, b),
 );
 
 const copy = {
   zh: {
     title: "作品集",
-    description: "收录软件开发、视觉设计与研究实践。",
+    description: "收录软件、设计、手工、科研与学习实践。",
     emptyTitle: "项目整理中",
     emptyDescription: "项目内容正在整理中。",
     featured: "精选",
-    kinds: {
-      software: "软件",
-      design: "设计",
-      research: "科研",
-      other: "其他",
-    },
+    series: "系列",
   },
   en: {
     title: "Portfolio",
-    description: "Selected work in software, design, and research.",
+    description: "Software, design, handcraft, research, and learning projects.",
     emptyTitle: "Projects coming soon",
     emptyDescription: "Project details will be added soon.",
     featured: "Featured",
-    kinds: {
-      software: "Software",
-      design: "Design",
-      research: "Research",
-      other: "Other",
-    },
+    series: "Series",
   },
 } as const;
 
 const text = copy[lang];
-const slugFromId = (id: string) => id.replace(/\.(md|mdx)$/i, "").replace(/\/index$/, "");
+const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
+  dateStyle: "long",
+  timeStyle: "short",
+  timeZone: "Asia/Shanghai",
+});
 ---
 
 <BaseLayout
@@ -85,10 +92,13 @@ const slugFromId = (id: string) => id.replace(/\.(md|mdx)$/i, "").replace(/\/ind
           <ProjectCard
             title={project.data.title}
             summary={project.data.summary}
-            href={routeFor(lang, `/projects/${slugFromId(project.id)}/`)}
+            href={routeFor(lang, `/projects/${contentSlugFromId(project.id)}/`)}
             number={String(index + 1).padStart(2, "0")}
-            category={text.kinds[project.data.kind]}
-            status={project.data.featured ? text.featured : undefined}
+            category={contentCategoryLabels[lang][project.data.category]}
+            featuredLabel={project.data.featured ? text.featured : undefined}
+            publishedAt={contentDateTimeIso(project.data)}
+            publishedLabel={dateTimeFormatter.format(contentDateTime(project.data))}
+            series={project.data.series ? `${text.series}: ${project.data.series}` : undefined}
             tags={project.data.tags}
             actionLabel={t(lang, "actions.viewProject")}
             contentLanguage={{

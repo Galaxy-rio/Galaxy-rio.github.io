@@ -1,6 +1,7 @@
 ---
 import { getCollection, render, type CollectionEntry } from "astro:content";
 import MaterialSymbol from "../../../components/MaterialSymbol.astro";
+import { contentCategoryLabels } from "../../../data/contentMeta";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
   assetPath,
@@ -9,15 +10,21 @@ import {
   routeFor,
   type Locale,
 } from "../../../i18n/config";
-
-const slugFromId = (id: string) => id.replace(/\.(md|mdx)$/i, "").replace(/\/index$/, "");
+import {
+  contentSlugFromId,
+  selectLocalizedEntries,
+} from "../../../utils/localizedContent";
+import {
+  contentDateTime,
+  contentDateTimeIso,
+} from "../../../utils/contentDateTime";
 
 export async function getStaticPaths() {
-  const posts = await getCollection("blog", ({ data }) => !data.draft);
+  const posts = await getCollection("blog", ({ data }) => data.status === "publish");
 
-  return posts.flatMap((entry) =>
-    locales.map((lang) => ({
-      params: { lang, slug: slugFromId(entry.id) },
+  return locales.flatMap((lang) =>
+    selectLocalizedEntries(posts, lang).map((entry) => ({
+      params: { lang, slug: contentSlugFromId(entry.id) },
       props: { lang, entry },
     })),
   );
@@ -35,23 +42,31 @@ const copy = {
   zh: {
     back: "返回博客",
     published: "发布于",
-    updated: "更新于",
+    author: "作者",
+    category: "类别",
+    series: "系列",
     tags: "标签",
+    links: "相关链接",
   },
   en: {
     back: "Back to blog",
     published: "Published",
-    updated: "Updated",
+    author: "Author",
+    category: "Category",
+    series: "Series",
     tags: "Tags",
+    links: "Related links",
   },
 } as const;
 
 const text = copy[lang];
-const dateFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
+const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
+  dateStyle: "long",
+  timeStyle: "short",
+  timeZone: "Asia/Shanghai",
 });
+const publishedAt = contentDateTime(entry.data);
+const publishedAtIso = contentDateTimeIso(entry.data);
 const cover = entry.data.cover
   ? /^https?:\/\//i.test(entry.data.cover)
     ? entry.data.cover
@@ -71,19 +86,15 @@ const cover = entry.data.cover
         <MaterialSymbol name="arrow_back" /> {text.back}
       </a>
       <div class="content-detail-meta" lang={lang}>
+        <span>{text.author}: {entry.data.author}</span>
+        <span>{text.category}: {contentCategoryLabels[lang][entry.data.category]}</span>
         <span>
-          {text.published}: <time datetime={entry.data.publishedAt.toISOString()}>
-            {dateFormatter.format(entry.data.publishedAt)}
+          {text.published}: <time datetime={publishedAtIso}>
+            {dateTimeFormatter.format(publishedAt)}
           </time>
         </span>
         {
-          entry.data.updatedAt && (
-            <span>
-              {text.updated}: <time datetime={entry.data.updatedAt.toISOString()}>
-                {dateFormatter.format(entry.data.updatedAt)}
-              </time>
-            </span>
-          )
+          entry.data.series && <span>{text.series}: {entry.data.series}</span>
         }
         <span class="content-language-badge" lang={entry.data.language}>
           {localeLabels[entry.data.language]}
@@ -111,5 +122,22 @@ const cover = entry.data.cover
     <div class="prose">
       <Content />
     </div>
+
+    {
+      entry.data.links.length > 0 && (
+        <aside class="content-links" aria-labelledby="blog-links-title" lang={lang}>
+          <h2 id="blog-links-title">{text.links}</h2>
+          <ul>
+            {entry.data.links.map((link) => (
+              <li>
+                <a href={link.url} target="_blank" rel="external noopener noreferrer">
+                  {link.label} <MaterialSymbol name="arrow_outward" />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )
+    }
   </article>
 </BaseLayout>

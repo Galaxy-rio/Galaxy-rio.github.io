@@ -10,7 +10,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "test": "npm run build && node --test tests/rendered-html.test.mjs"
+    "test": "npm run build && node --experimental-strip-types --test tests/rendered-html.test.mjs"
   },
   "dependencies": {
     "astro": "^7.2.0"

@@ -221,17 +221,16 @@
   transition: opacity var(--motion-duration-short) var(--motion-standard);
 }
 
-.overview-card::after {
+.overview-card-decoration {
   position: absolute;
-  z-index: -1;
-  right: -36px;
-  bottom: -48px;
-  width: 148px;
-  height: 148px;
-  border: 22px solid currentColor;
-  border-radius: 50%;
-  content: "";
-  opacity: 0.08;
+  z-index: 0;
+  right: -24px;
+  bottom: -28px;
+  color: currentColor;
+  font-size: clamp(144px, 15vw, 180px);
+  opacity: 0.09;
+  pointer-events: none;
+  transform: rotate(15deg);
   transition: transform var(--motion-duration-long) var(--motion-expressive);
 }
 
@@ -249,8 +248,8 @@
   box-shadow: var(--elevation-1);
 }
 
-.overview-card:is(:hover, :focus-visible)::after {
-  transform: scale(1.08);
+.overview-card:is(:hover, :focus-visible) .overview-card-decoration {
+  transform: rotate(15deg) scale(1.08);
 }
 
 .overview-card[data-accent="violet"],
@@ -289,6 +288,7 @@
 .overview-card-label,
 .overview-card-count,
 .project-meta span,
+.project-meta > time,
 .article-card-meta > time,
 .article-card-meta > span:not(.content-language-badge) {
   padding: 5px 10px;
@@ -330,15 +330,14 @@
   font-weight: 650;
 }
 
-.overview-card-action .material-symbol,
-.overview-card-action b {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: var(--md-sys-shape-corner-full);
-  background: var(--card-content);
-  color: var(--card-container);
+.overview-card-action-icon {
+  color: currentColor;
+  font-size: 22px;
+  transition: transform var(--motion-duration-medium) var(--motion-expressive);
+}
+
+.overview-card:is(:hover, :focus-visible) .overview-card-action-icon {
+  transform: translate(3px, -3px);
 }
 
 .empty-state {

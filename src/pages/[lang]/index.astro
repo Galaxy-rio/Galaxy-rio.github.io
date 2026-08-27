@@ -13,6 +13,7 @@ import {
   t,
   type Locale,
 } from "../../i18n/config";
+import { selectLocalizedEntries } from "../../utils/localizedContent";
 
 export function getStaticPaths() {
   return locales.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -28,10 +29,12 @@ if (!isLocale(lang)) {
   throw new Error(`Unsupported locale: ${String(lang)}`);
 }
 
-const [projects, posts] = await Promise.all([
-  getCollection("projects", ({ data }) => !data.draft),
-  getCollection("blog", ({ data }) => !data.draft),
+const [allProjects, allPosts] = await Promise.all([
+  getCollection("projects", ({ data }) => data.status === "publish"),
+  getCollection("blog", ({ data }) => data.status === "publish"),
 ]);
+const projects = selectLocalizedEntries(allProjects, lang);
+const posts = selectLocalizedEntries(allPosts, lang);
 
 const copy = {
   zh: {
@@ -118,6 +121,7 @@ const formatCount = (count: number) =>
         href={routeFor(lang, "/about/")}
         actionLabel={t(lang, "actions.readMore")}
         label="01"
+        decorativeIcon="badge"
         accent="violet"
       />
       <OverviewCard
@@ -126,6 +130,7 @@ const formatCount = (count: number) =>
         href={routeFor(lang, "/projects/")}
         actionLabel={t(lang, "actions.viewAll")}
         label="02"
+        decorativeIcon="work"
         count={formatCount(projects.length)}
         accent="orange"
       />
@@ -135,6 +140,7 @@ const formatCount = (count: number) =>
         href={routeFor(lang, "/research/")}
         actionLabel={t(lang, "actions.readMore")}
         label="03"
+        decorativeIcon="science"
         count={researchAreas.length}
         accent="blue"
       />
@@ -144,6 +150,7 @@ const formatCount = (count: number) =>
         href={routeFor(lang, "/blog/")}
         actionLabel={t(lang, "actions.viewAll")}
         label="04"
+        decorativeIcon="article"
         count={formatCount(posts.length)}
         accent="green"
       />
@@ -153,6 +160,7 @@ const formatCount = (count: number) =>
         href={routeFor(lang, "/skills/")}
         actionLabel={t(lang, "actions.viewAll")}
         label="05"
+        decorativeIcon="construction"
         count={allSkills.length}
         accent="pink"
       />
@@ -162,6 +170,7 @@ const formatCount = (count: number) =>
         href={routeFor(lang, "/contact/")}
         actionLabel={t(lang, "actions.readMore")}
         label="06"
+        decorativeIcon="mail"
         accent="yellow"
       />
     </div>
