@@ -30,6 +30,7 @@ translationKey: "astro-content-guide"
 ---
 title: "内容标题"
 summary: "用于列表页的简短摘要。"
+cover:
 language: zh
 translationKey:
 author: galaxyrio
@@ -49,6 +50,7 @@ links: []
 字段说明：
 
 - `translationKey`：可选；人工撰写的中英文版本填写相同的稳定 key。
+- `cover`：可选题图；可填写完整外链（例如 `cover: "https://img.example.top/cover.jpg"`）或 `public/` 下资源对应的站内路径（例如 `cover: "/images/covers/example.jpg"`）。留空时不显示题图；填写后会同时出现在列表卡片和内容页标题区域。
 - `author`：作者名称，默认模板填写 `galaxyrio`。
 - `date` 与 `time`：内容发布时间，分别使用带引号的 `YYYY-MM-DD` 与 `HH:mm`；网站按上海时区组合显示和排序。
 - `category`：`software`（软件）、`design`（设计）、`handcraft`（手工）、`research`（科研）或 `learning`（学习）。
@@ -64,4 +66,4 @@ links:
     url: https://github.com/Galaxy-rio
 ```
 
-`cover` 仍可作为额外的可选字段添加到任一内容中。单语言文件名可以使用 `optical-test-tool.md`；成对版本使用 `optical-test-tool.zh.md` 与 `optical-test-tool.en.md`。文件名应保持英文小写并适合 URL。
+页面标题已经由 frontmatter 中的 `title` 生成，因此正文建议直接从 `##` 二级标题开始；右侧文章目录只收集这些二级标题。单语言文件名可以使用 `optical-test-tool.md`；成对版本使用 `optical-test-tool.zh.md` 与 `optical-test-tool.en.md`。文件名应保持英文小写并适合 URL。

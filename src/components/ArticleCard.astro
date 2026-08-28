@@ -1,5 +1,4 @@
 ---
-import MaterialSymbol from "./MaterialSymbol.astro";
 import type { ContentLanguage } from "./types";
 
 interface Props {
@@ -8,13 +7,10 @@ interface Props {
   href: string;
   publishedAt?: string;
   publishedLabel?: string;
-  category?: string;
-  series?: string;
-  readingTime?: string;
-  tags?: string[];
-  actionLabel: string;
   contentLanguage?: ContentLanguage;
   featured?: boolean;
+  image?: string;
+  imageAlt?: string;
 }
 
 const {
@@ -23,51 +19,48 @@ const {
   href,
   publishedAt,
   publishedLabel,
-  category,
-  series,
-  readingTime,
-  tags = [],
-  actionLabel,
   contentLanguage,
   featured = false,
+  image,
+  imageAlt = "",
 } = Astro.props;
 ---
 
 <a
-  class:list={["article-card", { featured }]}
+  class:list={["article-card", { featured, "has-cover": Boolean(image) }]}
   href={href}
   aria-label={title}
 >
-  <div class="article-card-meta">
-    {
-      publishedAt && (
-        <time datetime={publishedAt}>{publishedLabel ?? publishedAt}</time>
-      )
-    }
-    {category && <span>{category}</span>}
-    {series && <span>{series}</span>}
-    {readingTime && <span>{readingTime}</span>}
-    {
-      contentLanguage && (
-        <span
-          class="content-language-badge"
-          aria-label={contentLanguage.label}
-        >
-          <span lang={contentLanguage.code}>{contentLanguage.label}</span>
-        </span>
-      )
-    }
-  </div>
+  {
+    image && (
+      <div class="article-card-visual">
+        <img src={image} alt={imageAlt} loading="lazy" decoding="async" />
+      </div>
+    )
+  }
 
-  <div class="article-card-copy" lang={contentLanguage?.code}>
-    <h2>{title}</h2>
-    {summary && <p>{summary}</p>}
-  </div>
+  <div class="article-card-content">
+    <div class="article-card-meta">
+      {
+        publishedAt && (
+          <time datetime={publishedAt}>{publishedLabel ?? publishedAt}</time>
+        )
+      }
+      {
+        contentLanguage && (
+          <span
+            class="content-language-badge"
+            aria-label={contentLanguage.label}
+          >
+            <span lang={contentLanguage.code}>{contentLanguage.label}</span>
+          </span>
+        )
+      }
+    </div>
 
-  <div class="article-card-footer">
-    {tags.length > 0 && <ul aria-label={title}>{tags.map((tag) => <li>{tag}</li>)}</ul>}
-    <span class="concept-label">
-      {actionLabel} <MaterialSymbol name="arrow_outward" />
-    </span>
+    <div class="article-card-copy" lang={contentLanguage?.code}>
+      <h2>{title}</h2>
+      {summary && <p>{summary}</p>}
+    </div>
   </div>
 </a>

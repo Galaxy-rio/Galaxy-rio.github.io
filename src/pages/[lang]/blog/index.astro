@@ -1,9 +1,9 @@
 ---
 import { getCollection } from "astro:content";
 import ArticleCard from "../../../components/ArticleCard.astro";
+import ContentSideNav from "../../../components/ContentSideNav.astro";
 import EmptyState from "../../../components/EmptyState.astro";
 import PageHeader from "../../../components/PageHeader.astro";
-import { contentCategoryLabels } from "../../../data/contentMeta";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
   isLocale,
@@ -22,6 +22,8 @@ import {
   contentDateTime,
   contentDateTimeIso,
 } from "../../../utils/contentDateTime";
+import { resolveContentCover } from "../../../utils/contentCover";
+import { groupContentByYear } from "../../../utils/contentNavigation";
 
 export function getStaticPaths() {
   return locales.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -45,6 +47,7 @@ const posts = selectLocalizedEntries(
     Number(b.data.featured) - Number(a.data.featured) ||
     compareContentDateTimeDescending(a, b),
 );
+const postGroups = groupContentByYear(posts);
 
 const copy = {
   zh: {
@@ -52,23 +55,38 @@ const copy = {
     description: "记录学习过程、技术实践和偶尔做的小玩意。",
     emptyTitle: "文章整理中",
     emptyDescription: "新文章会陆续更新。",
-    series: "系列",
+    onThisPage: "本页内容",
+    navigationLabel: "博客年份目录",
+    all: "全部文章",
   },
   en: {
     title: "Blog",
     description: "Notes on learning, technical experiments, and occasional side projects.",
     emptyTitle: "Posts coming soon",
     emptyDescription: "New posts will appear here.",
-    series: "Series",
+    onThisPage: "On this page",
+    navigationLabel: "Blog archive by year",
+    all: "All posts",
   },
 } as const;
 
 const text = copy[lang];
-const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
+const dateFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
   dateStyle: "long",
-  timeStyle: "short",
   timeZone: "Asia/Shanghai",
 });
+const sideNavigationItems = [
+  {
+    label: text.all,
+    href: "#blog-page-title",
+    targetId: "blog-page-title",
+  },
+  ...postGroups.map(({ year }) => ({
+    label: year,
+    href: `#blog-year-${year}`,
+    targetId: `blog-year-${year}`,
+  })),
+];
 ---
 
 <BaseLayout
@@ -77,42 +95,64 @@ const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en"
   description={text.description}
   activePath={Astro.url.pathname}
 >
-  <PageHeader
-    title={text.title}
-    description={text.description}
-    eyebrow={t(lang, "section.blog.kicker")}
-  />
+  <div class:list={["content-index-layout", { "without-side-nav": posts.length === 0 }]}>
+    <PageHeader
+      title={text.title}
+      description={text.description}
+      eyebrow={t(lang, "section.blog.kicker")}
+      headingId="blog-page-title"
+    />
 
-  {
-    posts.length > 0 ? (
-      <section class="article-list page-section" aria-label={text.title}>
-        {posts.map((post) => (
-          <ArticleCard
-            title={post.data.title}
-            summary={post.data.summary}
-            href={routeFor(lang, `/blog/${contentSlugFromId(post.id)}/`)}
-            actionLabel={t(lang, "actions.readMore")}
-            publishedAt={contentDateTimeIso(post.data)}
-            publishedLabel={dateTimeFormatter.format(contentDateTime(post.data))}
-            category={contentCategoryLabels[lang][post.data.category]}
-            series={post.data.series ? `${text.series}: ${post.data.series}` : undefined}
-            tags={post.data.tags}
-            contentLanguage={{
-              code: post.data.language,
-              label: localeLabels[post.data.language],
-            }}
-            featured={post.data.featured}
-          />
-        ))}
-      </section>
-    ) : (
-      <div class="page-section">
-        <EmptyState
-          title={text.emptyTitle}
-          description={text.emptyDescription}
-          icon="✎"
+    {
+      posts.length > 0 && (
+        <ContentSideNav
+          eyebrow={text.onThisPage}
+          title={text.title}
+          ariaLabel={text.navigationLabel}
+          items={sideNavigationItems}
+          contentLanguage={lang}
         />
-      </div>
-    )
-  }
+      )
+    }
+
+    <div class="content-index-main">
+      {
+        posts.length > 0 ? (
+          <div class="content-year-groups page-section" aria-label={text.all}>
+            {postGroups.map(({ year, entries }) => (
+              <section class="content-year-section" aria-labelledby={`blog-year-${year}`}>
+                <p class="content-year-heading" id={`blog-year-${year}`}>{year}</p>
+                <div class="article-list">
+                  {entries.map((post) => (
+                    <ArticleCard
+                      title={post.data.title}
+                      summary={post.data.summary}
+                      href={routeFor(lang, `/blog/${contentSlugFromId(post.id)}/`)}
+                      publishedAt={contentDateTimeIso(post.data)}
+                      publishedLabel={dateFormatter.format(contentDateTime(post.data))}
+                      contentLanguage={{
+                        code: post.data.language,
+                        label: localeLabels[post.data.language],
+                      }}
+                      featured={post.data.featured}
+                      image={resolveContentCover(post.data.cover)}
+                      imageAlt=""
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div class="page-section">
+            <EmptyState
+              title={text.emptyTitle}
+              description={text.emptyDescription}
+              icon="✎"
+            />
+          </div>
+        )
+      }
+    </div>
+  </div>
 </BaseLayout>

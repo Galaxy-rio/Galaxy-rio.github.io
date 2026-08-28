@@ -1,0 +1,162 @@
+---
+export interface ContentSideNavItem {
+  label: string;
+  href: string;
+  targetId: string;
+  language?: string;
+}
+
+interface Props {
+  eyebrow: string;
+  title: string;
+  ariaLabel: string;
+  items: ContentSideNavItem[];
+  contentLanguage?: string;
+}
+
+const {
+  eyebrow,
+  title,
+  ariaLabel,
+  items,
+  contentLanguage,
+} = Astro.props;
+---
+
+<aside class="content-side-nav" data-content-side-nav>
+  <div class="content-side-nav-inner">
+    <p class="content-side-nav-eyebrow">{eyebrow}</p>
+    <h2 lang={contentLanguage}>{title}</h2>
+    <nav aria-label={ariaLabel}>
+      <span
+        class="content-side-nav-active-frame"
+        aria-hidden="true"
+        data-content-side-nav-active-frame
+      ></span>
+      <ul>
+        {
+          items.map((item, index) => (
+            <li>
+              <a
+                href={item.href}
+                data-content-side-nav-link
+                data-target-id={item.targetId}
+                aria-current={index === 0 ? "location" : undefined}
+                lang={item.language ?? contentLanguage}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</aside>
+
+<script>
+  const sideNavigations = document.querySelectorAll<HTMLElement>("[data-content-side-nav]");
+
+  sideNavigations.forEach((sideNavigation) => {
+    const navigation = sideNavigation.querySelector<HTMLElement>("nav");
+    const activeFrame = sideNavigation.querySelector<HTMLElement>(
+      "[data-content-side-nav-active-frame]",
+    );
+    const links = Array.from(
+      sideNavigation.querySelectorAll<HTMLAnchorElement>("[data-content-side-nav-link]"),
+    );
+    const targets = links.map((link) => {
+      const targetId = link.dataset.targetId;
+      return targetId ? document.getElementById(targetId) : null;
+    });
+
+    if (
+      !navigation ||
+      !activeFrame ||
+      links.length === 0 ||
+      targets.every((target) => target === null)
+    ) return;
+
+    let animationFrame = 0;
+    let activeLinkIndex = 0;
+
+    const positionActiveFrame = (activeIndex: number) => {
+      const activeLink = links[activeIndex];
+      if (!activeLink) return;
+
+      const navigationBounds = navigation.getBoundingClientRect();
+      const linkBounds = activeLink.getBoundingClientRect();
+      if (linkBounds.width === 0 || linkBounds.height === 0) {
+        activeFrame.removeAttribute("data-ready");
+        return;
+      }
+
+      activeFrame.style.setProperty(
+        "--content-side-nav-frame-x",
+        `${linkBounds.left - navigationBounds.left + navigation.scrollLeft}px`,
+      );
+      activeFrame.style.setProperty(
+        "--content-side-nav-frame-y",
+        `${linkBounds.top - navigationBounds.top + navigation.scrollTop}px`,
+      );
+      activeFrame.style.setProperty("--content-side-nav-frame-width", `${linkBounds.width}px`);
+      activeFrame.style.setProperty("--content-side-nav-frame-height", `${linkBounds.height}px`);
+      activeFrame.style.setProperty(
+        "--content-side-nav-frame-radius",
+        `${Math.min(28, Math.max(16, linkBounds.height / 2))}px`,
+      );
+
+      if (!activeFrame.hasAttribute("data-ready")) {
+        window.requestAnimationFrame(() => activeFrame.setAttribute("data-ready", ""));
+      }
+    };
+
+    const setCurrentLink = (activeIndex: number) => {
+      activeLinkIndex = activeIndex;
+      links.forEach((link, index) => {
+        if (index === activeIndex) {
+          link.setAttribute("aria-current", "location");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+      positionActiveFrame(activeIndex);
+    };
+
+    const updateCurrentLink = () => {
+      animationFrame = 0;
+      const activationLine = Math.min(180, window.innerHeight * 0.28);
+      let activeIndex = 0;
+
+      targets.forEach((target, index) => {
+        if (target && target.getBoundingClientRect().top <= activationLine) {
+          activeIndex = index;
+        }
+      });
+
+      setCurrentLink(activeIndex);
+    };
+
+    const queueUpdate = () => {
+      if (animationFrame === 0) {
+        animationFrame = window.requestAnimationFrame(updateCurrentLink);
+      }
+    };
+
+    links.forEach((link, index) => {
+      link.addEventListener("click", () => setCurrentLink(index));
+    });
+    window.addEventListener("scroll", queueUpdate, { passive: true });
+    window.addEventListener("resize", queueUpdate, { passive: true });
+    window.addEventListener("hashchange", queueUpdate);
+
+    if ("ResizeObserver" in window) {
+      const resizeObserver = new ResizeObserver(() => positionActiveFrame(activeLinkIndex));
+      resizeObserver.observe(navigation);
+      links.forEach((link) => resizeObserver.observe(link));
+    }
+
+    document.fonts?.ready.then(() => positionActiveFrame(activeLinkIndex));
+    queueUpdate();
+  });
+</script>

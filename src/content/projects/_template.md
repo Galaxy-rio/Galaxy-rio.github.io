@@ -1,6 +1,7 @@
 ---
 title: "内容标题"
 summary: "用于列表页的简短摘要。"
+cover:
 language: zh
 translationKey:
 author: galaxyrio

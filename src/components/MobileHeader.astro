@@ -1,5 +1,6 @@
 ---
 import LanguageSwitch from "./LanguageSwitch.astro";
+import MaterialSymbol from "./MaterialSymbol.astro";
 import ThemeToggle from "./ThemeToggle.astro";
 import type { Locale } from "./types";
 
@@ -26,9 +27,23 @@ const {
   languageLabel,
   activePath,
 } = Astro.props;
+const drawerId = `mobile-navigation-drawer-${lang}`;
+const menuLabel = lang === "zh" ? "打开导航菜单" : "Open navigation menu";
 ---
 
 <header class="mobile-topbar">
+  <button
+    class="mobile-drawer-trigger"
+    type="button"
+    aria-label={menuLabel}
+    title={menuLabel}
+    aria-haspopup="dialog"
+    aria-expanded="false"
+    aria-controls={drawerId}
+    data-mobile-drawer-trigger
+  >
+    <MaterialSymbol name="menu" class="mobile-drawer-trigger-icon" />
+  </button>
   <a class="mobile-brand" href={homeHref} aria-label={brandLabel}>
     <span class="mobile-brand-avatar">
       <img src={avatarSrc} alt={avatarAlt} width="48" height="48" decoding="async" />

@@ -1,6 +1,7 @@
 ---
-title: 基于 Cloudflare R2 的个人图床系统系统搭建
-summary: 基于 Cloudflare R2 的个人图床系统系统搭建
+title: 基于 Cloudflare R2 的个人图床系统搭建
+summary: 使用 Cloudflare R2 搭建图床并优化图片传输
+cover: "https://img.galaxyrio.top/media/2026/08/217f8f5c603d5ea107d96f6f6c2ea6b9.png"
 language: zh
 translationKey: personal image host based on cloudflare r2
 author: galaxyrio
@@ -15,8 +16,6 @@ featured: false
 status: publish
 links: []
 ---
-
-# 基于 Cloudflare R2 的个人图床系统系统搭建
 
 ## 前言
 

@@ -1,5 +1,6 @@
 ---
 import { getCollection } from "astro:content";
+import ContentSideNav from "../../../components/ContentSideNav.astro";
 import EmptyState from "../../../components/EmptyState.astro";
 import PageHeader from "../../../components/PageHeader.astro";
 import ProjectCard from "../../../components/ProjectCard.astro";
@@ -22,6 +23,8 @@ import {
   contentDateTime,
   contentDateTimeIso,
 } from "../../../utils/contentDateTime";
+import { resolveContentCover } from "../../../utils/contentCover";
+import { groupContentByYear } from "../../../utils/contentNavigation";
 
 export function getStaticPaths() {
   return locales.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -45,6 +48,8 @@ const projects = selectLocalizedEntries(
     Number(b.data.featured) - Number(a.data.featured) ||
     compareContentDateTimeDescending(a, b),
 );
+const projectGroups = groupContentByYear(projects);
+const projectOrder = new Map(projects.map((project, index) => [project.id, index]));
 
 const copy = {
   zh: {
@@ -54,6 +59,9 @@ const copy = {
     emptyDescription: "项目内容正在整理中。",
     featured: "精选",
     series: "系列",
+    onThisPage: "本页内容",
+    navigationLabel: "作品年份目录",
+    all: "全部作品",
   },
   en: {
     title: "Portfolio",
@@ -62,6 +70,9 @@ const copy = {
     emptyDescription: "Project details will be added soon.",
     featured: "Featured",
     series: "Series",
+    onThisPage: "On this page",
+    navigationLabel: "Portfolio archive by year",
+    all: "All projects",
   },
 } as const;
 
@@ -71,6 +82,18 @@ const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en"
   timeStyle: "short",
   timeZone: "Asia/Shanghai",
 });
+const sideNavigationItems = [
+  {
+    label: text.all,
+    href: "#projects-page-title",
+    targetId: "projects-page-title",
+  },
+  ...projectGroups.map(({ year }) => ({
+    label: year,
+    href: `#projects-year-${year}`,
+    targetId: `projects-year-${year}`,
+  })),
+];
 ---
 
 <BaseLayout
@@ -79,44 +102,73 @@ const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en"
   description={text.description}
   activePath={Astro.url.pathname}
 >
-  <PageHeader
-    title={text.title}
-    description={text.description}
-    eyebrow={t(lang, "section.portfolio.kicker")}
-  />
+  <div class:list={["content-index-layout", { "without-side-nav": projects.length === 0 }]}>
+    <PageHeader
+      title={text.title}
+      description={text.description}
+      eyebrow={t(lang, "section.portfolio.kicker")}
+      headingId="projects-page-title"
+    />
 
-  {
-    projects.length > 0 ? (
-      <section class="project-grid page-section" aria-label={text.title}>
-        {projects.map((project, index) => (
-          <ProjectCard
-            title={project.data.title}
-            summary={project.data.summary}
-            href={routeFor(lang, `/projects/${contentSlugFromId(project.id)}/`)}
-            number={String(index + 1).padStart(2, "0")}
-            category={contentCategoryLabels[lang][project.data.category]}
-            featuredLabel={project.data.featured ? text.featured : undefined}
-            publishedAt={contentDateTimeIso(project.data)}
-            publishedLabel={dateTimeFormatter.format(contentDateTime(project.data))}
-            series={project.data.series ? `${text.series}: ${project.data.series}` : undefined}
-            tags={project.data.tags}
-            actionLabel={t(lang, "actions.viewProject")}
-            contentLanguage={{
-              code: project.data.language,
-              label: localeLabels[project.data.language],
-            }}
-            accent={["violet", "orange", "blue", "green"][index % 4]}
-          />
-        ))}
-      </section>
-    ) : (
-      <div class="page-section">
-        <EmptyState
-          title={text.emptyTitle}
-          description={text.emptyDescription}
-          icon="◇"
+    {
+      projects.length > 0 && (
+        <ContentSideNav
+          eyebrow={text.onThisPage}
+          title={text.title}
+          ariaLabel={text.navigationLabel}
+          items={sideNavigationItems}
+          contentLanguage={lang}
         />
-      </div>
-    )
-  }
+      )
+    }
+
+    <div class="content-index-main">
+      {
+        projects.length > 0 ? (
+          <div class="content-year-groups page-section" aria-label={text.all}>
+            {projectGroups.map(({ year, entries }) => (
+              <section class="content-year-section" aria-labelledby={`projects-year-${year}`}>
+                <p class="content-year-heading" id={`projects-year-${year}`}>{year}</p>
+                <div class="project-grid">
+                  {entries.map((project) => {
+                    const index = projectOrder.get(project.id) ?? 0;
+                    return (
+                      <ProjectCard
+                        title={project.data.title}
+                        summary={project.data.summary}
+                        href={routeFor(lang, `/projects/${contentSlugFromId(project.id)}/`)}
+                        number={String(index + 1).padStart(2, "0")}
+                        category={contentCategoryLabels[lang][project.data.category]}
+                        featuredLabel={project.data.featured ? text.featured : undefined}
+                        publishedAt={contentDateTimeIso(project.data)}
+                        publishedLabel={dateTimeFormatter.format(contentDateTime(project.data))}
+                        series={project.data.series ? `${text.series}: ${project.data.series}` : undefined}
+                        tags={project.data.tags}
+                        actionLabel={t(lang, "actions.viewProject")}
+                        contentLanguage={{
+                          code: project.data.language,
+                          label: localeLabels[project.data.language],
+                        }}
+                        accent={["violet", "orange", "blue", "green"][index % 4]}
+                        image={resolveContentCover(project.data.cover)}
+                        imageAlt=""
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div class="page-section">
+            <EmptyState
+              title={text.emptyTitle}
+              description={text.emptyDescription}
+              icon="◇"
+            />
+          </div>
+        )
+      }
+    </div>
+  </div>
 </BaseLayout>

@@ -1,11 +1,11 @@
 ---
 import { getCollection, render, type CollectionEntry } from "astro:content";
+import ContentEnhancements from "../../../components/ContentEnhancements.astro";
+import ContentSideNav from "../../../components/ContentSideNav.astro";
 import MaterialSymbol from "../../../components/MaterialSymbol.astro";
 import { contentCategoryLabels } from "../../../data/contentMeta";
 import BaseLayout from "../../../layouts/BaseLayout.astro";
 import {
-  assetPath,
-  localeLabels,
   locales,
   routeFor,
   type Locale,
@@ -18,6 +18,8 @@ import {
   contentDateTime,
   contentDateTimeIso,
 } from "../../../utils/contentDateTime";
+import { resolveContentCover } from "../../../utils/contentCover";
+import { selectSecondLevelHeadings } from "../../../utils/contentNavigation";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog", ({ data }) => data.status === "publish");
@@ -36,42 +38,55 @@ interface Props {
 }
 
 const { lang, entry }: Props = Astro.props;
-const { Content } = await render(entry);
+const { Content, headings } = await render(entry);
+const sectionHeadings = selectSecondLevelHeadings(headings);
 
 const copy = {
   zh: {
     back: "返回博客",
-    published: "发布于",
     author: "作者",
     category: "类别",
     series: "系列",
     tags: "标签",
+    details: "文章信息",
     links: "相关链接",
+    onThisPage: "本页内容",
+    navigationLabel: "文章目录",
+    imageDialog: "图片预览",
+    enlargeImage: "放大图片",
+    closeImage: "关闭图片预览",
   },
   en: {
     back: "Back to blog",
-    published: "Published",
     author: "Author",
     category: "Category",
     series: "Series",
     tags: "Tags",
+    details: "Article details",
     links: "Related links",
+    onThisPage: "On this page",
+    navigationLabel: "Article contents",
+    imageDialog: "Image preview",
+    enlargeImage: "Enlarge image",
+    closeImage: "Close image preview",
   },
 } as const;
 
 const text = copy[lang];
-const dateTimeFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
+const dateFormatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en", {
   dateStyle: "long",
-  timeStyle: "short",
   timeZone: "Asia/Shanghai",
 });
 const publishedAt = contentDateTime(entry.data);
 const publishedAtIso = contentDateTimeIso(entry.data);
-const cover = entry.data.cover
-  ? /^https?:\/\//i.test(entry.data.cover)
-    ? entry.data.cover
-    : assetPath(entry.data.cover.replace(/^\//, ""))
-  : undefined;
+const cover = resolveContentCover(entry.data.cover);
+const showSummary = entry.data.summary.trim() !== entry.data.title.trim();
+const sideNavigationItems = sectionHeadings.map((heading) => ({
+  label: heading.text,
+  href: `#${heading.slug}`,
+  targetId: heading.slug,
+  language: entry.data.language,
+}));
 ---
 
 <BaseLayout
@@ -79,65 +94,109 @@ const cover = entry.data.cover
   title={entry.data.title}
   description={entry.data.summary}
   activePath={Astro.url.pathname}
+  mainClass="content-detail-page"
 >
-  <article class="content-detail" lang={entry.data.language}>
-    <header class="content-detail-header">
-      <a class="back-link" href={routeFor(lang, "/blog/")} lang={lang}>
+  <article
+    class:list={["content-detail-layout", { "without-side-nav": sideNavigationItems.length === 0 }]}
+    lang={entry.data.language}
+  >
+    <header id="article-start" class="content-detail-hero">
+      <a
+        class="back-link content-detail-back-link"
+        href={routeFor(lang, "/blog/")}
+        lang={lang}
+      >
         <MaterialSymbol name="arrow_back" /> {text.back}
       </a>
-      <div class="content-detail-meta" lang={lang}>
-        <span>{text.author}: {entry.data.author}</span>
-        <span>{text.category}: {contentCategoryLabels[lang][entry.data.category]}</span>
-        <span>
-          {text.published}: <time datetime={publishedAtIso}>
-            {dateTimeFormatter.format(publishedAt)}
-          </time>
-        </span>
+
+      <div class:list={["content-detail-header", { "has-cover": Boolean(cover) }]}>
+        <div class="content-detail-header-copy">
+          <div class="content-detail-meta" lang={lang}>
+            <time datetime={publishedAtIso}>{dateFormatter.format(publishedAt)}</time>
+          </div>
+          <h1>{entry.data.title}</h1>
+          {showSummary && <p class="content-detail-summary">{entry.data.summary}</p>}
+        </div>
+
         {
-          entry.data.series && <span>{text.series}: {entry.data.series}</span>
+          cover && (
+            <figure class="content-detail-cover">
+              <img src={cover} alt="" loading="eager" decoding="async" />
+            </figure>
+          )
         }
-        <span class="content-language-badge" lang={entry.data.language}>
-          {localeLabels[entry.data.language]}
-        </span>
       </div>
-      <h1>{entry.data.title}</h1>
-      <p class="content-detail-summary">{entry.data.summary}</p>
-      {
-        entry.data.tags.length > 0 && (
-          <ul class="content-tags" aria-label={text.tags}>
-            {entry.data.tags.map((tag) => <li>{tag}</li>)}
-          </ul>
-        )
-      }
     </header>
 
     {
-      cover && (
-        <figure class="content-cover">
-          <img src={cover} alt="" loading="eager" decoding="async" />
-        </figure>
+      sideNavigationItems.length > 0 && (
+        <ContentSideNav
+          eyebrow={text.onThisPage}
+          title={entry.data.title}
+          ariaLabel={text.navigationLabel}
+          items={sideNavigationItems}
+          contentLanguage={entry.data.language}
+        />
       )
     }
 
-    <div class="prose">
-      <Content />
+    <div class="content-detail-main">
+      <dl class="content-detail-byline" aria-label={text.details} lang={lang}>
+        <div class="content-detail-byline-item">
+          <dt>{text.author}</dt>
+          <dd>{entry.data.author}</dd>
+        </div>
+        <div class="content-detail-byline-item">
+          <dt>{text.category}</dt>
+          <dd>{contentCategoryLabels[lang][entry.data.category]}</dd>
+        </div>
+        {
+          entry.data.series && (
+            <div class="content-detail-byline-item content-detail-byline-series">
+              <dt>{text.series}</dt>
+              <dd>{entry.data.series}</dd>
+            </div>
+          )
+        }
+      </dl>
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      {
+        entry.data.tags.length > 0 && (
+          <footer class="content-detail-end-meta" lang={lang}>
+            <p>{text.tags}</p>
+            <ul class="content-tags" lang={entry.data.language}>
+              {entry.data.tags.map((tag) => <li>{tag}</li>)}
+            </ul>
+          </footer>
+        )
+      }
+
+      {
+        entry.data.links.length > 0 && (
+          <aside class="content-links" aria-labelledby="blog-links-title" lang={lang}>
+            <h2 id="blog-links-title">{text.links}</h2>
+            <ul>
+              {entry.data.links.map((link) => (
+                <li>
+                  <a href={link.url} target="_blank" rel="external noopener noreferrer">
+                    {link.label} <MaterialSymbol name="arrow_outward" />
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        )
+      }
     </div>
-
-    {
-      entry.data.links.length > 0 && (
-        <aside class="content-links" aria-labelledby="blog-links-title" lang={lang}>
-          <h2 id="blog-links-title">{text.links}</h2>
-          <ul>
-            {entry.data.links.map((link) => (
-              <li>
-                <a href={link.url} target="_blank" rel="external noopener noreferrer">
-                  {link.label} <MaterialSymbol name="arrow_outward" />
-                </a>
-              </li>
-            ))}
-          </ul>
-        </aside>
-      )
-    }
   </article>
+
+  <ContentEnhancements
+    dialogLabel={text.imageDialog}
+    enlargeLabel={text.enlargeImage}
+    closeLabel={text.closeImage}
+  />
 </BaseLayout>

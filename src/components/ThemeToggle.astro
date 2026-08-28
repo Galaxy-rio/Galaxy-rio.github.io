@@ -4,9 +4,10 @@ import MaterialSymbol from "./MaterialSymbol.astro";
 interface Props {
   label: string;
   class?: string;
+  text?: string;
 }
 
-const { label, class: className = "theme-toggle" } = Astro.props;
+const { label, class: className = "theme-toggle", text } = Astro.props;
 ---
 
 <button
@@ -20,4 +21,5 @@ const { label, class: className = "theme-toggle" } = Astro.props;
   <span data-theme-icon aria-hidden="true">
     <MaterialSymbol name="dark_mode" />
   </span>
+  {text && <span class="theme-toggle-label">{text}</span>}
 </button>

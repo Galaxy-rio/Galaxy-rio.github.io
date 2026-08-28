@@ -11,6 +11,10 @@ import {
   contentDateTime,
   contentDateTimeIso,
 } from "../src/utils/contentDateTime.ts";
+import {
+  groupContentByYear,
+  selectSecondLevelHeadings,
+} from "../src/utils/contentNavigation.ts";
 
 const readOutput = (path) =>
   readFile(new URL(`../dist/${path}`, import.meta.url), "utf8");
@@ -118,6 +122,27 @@ test("orders content by the authored date and time in Shanghai", () => {
   );
 });
 
+test("groups archives by descending year and selects only second-level headings", () => {
+  const olderFeatured = { id: "older", data: { date: "2025-12-01" } };
+  const current = { id: "current", data: { date: "2026-02-01" } };
+  const newest = { id: "newest", data: { date: "2027-01-01" } };
+  const groups = groupContentByYear([olderFeatured, current, newest]);
+
+  assert.deepEqual(groups.map(({ year }) => year), ["2027", "2026", "2025"]);
+  assert.deepEqual(groups[2].entries, [olderFeatured]);
+
+  const headings = [
+    { depth: 1, slug: "title", text: "Title" },
+    { depth: 2, slug: "overview", text: "Overview" },
+    { depth: 3, slug: "detail", text: "Detail" },
+    { depth: 2, slug: "result", text: "Result" },
+  ];
+  assert.deepEqual(
+    selectSecondLevelHeadings(headings).map(({ slug }) => slug),
+    ["overview", "result"],
+  );
+});
+
 test("wires localized content selection into collections and routes", async () => {
   const [
     contentConfig,
@@ -131,6 +156,16 @@ test("wires localized content selection into collections and routes", async () =
     blogTemplate,
     projectTemplate,
     guide,
+    contentNavigation,
+    contentCover,
+    contentSideNav,
+    articleCard,
+    projectCard,
+    contentEnhancements,
+    componentsCss,
+    pagesCss,
+    proseCss,
+    astroConfig,
   ] =
     await Promise.all([
       readFile(new URL("../src/content.config.ts", import.meta.url), "utf8"),
@@ -144,6 +179,16 @@ test("wires localized content selection into collections and routes", async () =
       readFile(new URL("../src/content/blog/_template.md", import.meta.url), "utf8"),
       readFile(new URL("../src/content/projects/_template.md", import.meta.url), "utf8"),
       readFile(new URL("../src/content/README.md", import.meta.url), "utf8"),
+      readFile(new URL("../src/utils/contentNavigation.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src/utils/contentCover.ts", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/ContentSideNav.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/ArticleCard.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/ProjectCard.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/ContentEnhancements.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/styles/components.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/styles/pages.css", import.meta.url), "utf8"),
+      readFile(new URL("../src/styles/prose.css", import.meta.url), "utf8"),
+      readFile(new URL("../astro.config.mjs", import.meta.url), "utf8"),
     ]);
 
   assert.equal((contentConfig.match(/generateId:\s*\(\{ entry \}\)/g) ?? []).length, 2);
@@ -157,6 +202,7 @@ test("wires localized content selection into collections and routes", async () =
   assert.match(contentConfig, /series:\s*optionalText/);
   assert.match(contentConfig, /featured:\s*z\.boolean\(\)\.default\(false\)/);
   assert.match(contentConfig, /status:\s*z\.enum\(publicationStatuses\)\.default\("draft"\)/);
+  assert.match(contentConfig, /cover:\s*optionalText/);
   assert.equal((contentConfig.match(/schema:\s*contentSchema/g) ?? []).length, 2);
   assert.match(contentMeta, /"software"[\s\S]*"design"[\s\S]*"handcraft"[\s\S]*"research"[\s\S]*"learning"/);
   assert.match(contentMeta, /publicationStatuses = \["draft", "publish"\]/);
@@ -176,18 +222,114 @@ test("wires localized content selection into collections and routes", async () =
     assert.match(source, /selectLocalizedEntries\(/);
     assert.match(source, /contentSlugFromId\(/);
     assert.match(source, /data\.status === "publish"/);
-    assert.match(source, /contentCategoryLabels/);
     assert.doesNotMatch(source, /const slugFromId/);
     assert.doesNotMatch(source, /data\.(?:draft|publishedAt|updatedAt|completedAt|kind)\b/);
   }
+  for (const source of [blogDetail, projectsIndex, projectsDetail]) {
+    assert.match(source, /contentCategoryLabels/);
+  }
 
   assert.match(blogIndex, /featured=\{post\.data\.featured\}/);
+  assert.doesNotMatch(blogIndex, /timeStyle:/);
   assert.match(projectsIndex, /featuredLabel=\{project\.data\.featured/);
+  for (const source of [blogIndex, projectsIndex]) {
+    assert.match(source, /groupContentByYear\(/);
+    assert.match(source, /<ContentSideNav/);
+    assert.equal((source.match(/<ContentSideNav/g) ?? []).length, 1);
+    assert.match(source, /resolveContentCover\(/);
+    assert.match(source, /image=\{resolveContentCover\(/);
+    assert.match(source, /content-year-section/);
+  }
   assert.match(blogDetail, /entry\.data\.author/);
   assert.match(blogDetail, /entry\.data\.series/);
   assert.match(blogDetail, /entry\.data\.links/);
   assert.match(projectsDetail, /entry\.data\.author/);
   assert.match(projectsDetail, /entry\.data\.series/);
+  for (const source of [blogDetail, projectsDetail]) {
+    assert.match(source, /const \{ Content, headings \} = await render\(entry\)/);
+    assert.match(source, /selectSecondLevelHeadings\(headings\)/);
+    assert.match(source, /label:\s*heading\.text/);
+    assert.match(source, /href:\s*`#\$\{heading\.slug\}`/);
+    assert.match(source, /<ContentSideNav/);
+    assert.equal((source.match(/<ContentSideNav/g) ?? []).length, 1);
+    assert.match(source, /class="content-detail-cover"/);
+    assert.match(source, /mainClass="content-detail-page"/);
+    assert.match(source, /class="content-detail-hero"/);
+    assert.match(source, /class="content-detail-byline"/);
+    assert.match(source, /const showSummary = entry\.data\.summary\.trim\(\) !== entry\.data\.title\.trim\(\)/);
+    assert.match(source, /\{showSummary && <p class="content-detail-summary">/);
+    assert.match(source, /const dateFormatter = new Intl\.DateTimeFormat/);
+    assert.doesNotMatch(source, /timeStyle:/);
+    const headerMeta = source.match(/<div class="content-detail-meta"[\s\S]*?<\/div>/)?.[0] ?? "";
+    assert.match(headerMeta, /<time datetime=\{publishedAtIso\}>/);
+    assert.doesNotMatch(headerMeta, /contentCategoryLabels|content-language-badge|localeLabels|<span/);
+    assert.match(source, /<dt>\{text\.author\}<\/dt>[\s\S]*?<dt>\{text\.category\}<\/dt>/);
+    assert.match(source, /<footer class="content-detail-end-meta"/);
+    assert.doesNotMatch(source, /content-detail-byline-tags/);
+    assert.match(source, /<ContentEnhancements/);
+  }
+  assert.match(contentNavigation, /heading\.depth === 2/);
+  assert.match(contentNavigation, /sort\(\(a, b\) => b\.localeCompare\(a\)\)/);
+  assert.match(contentCover, /\^\(\?:https\?:\)\?\\\/\\\//);
+  assert.match(contentCover, /assetPath\(value\)/);
+  assert.match(contentSideNav, /data-content-side-nav-link/);
+  assert.match(contentSideNav, /data-content-side-nav-active-frame/);
+  assert.match(contentSideNav, /aria-current=\{index === 0 \? "location"/);
+  assert.match(contentSideNav, /positionActiveFrame/);
+  assert.match(contentSideNav, /ResizeObserver/);
+  assert.doesNotMatch(contentSideNav, /\bvariant\b/);
+  assert.match(articleCard, /class="article-card-visual"/);
+  assert.match(articleCard, /class="article-card-content"/);
+  assert.match(articleCard, /"has-cover": Boolean\(image\)/);
+  assert.doesNotMatch(articleCard, /article-card-footer|actionLabel|MaterialSymbol/);
+  assert.match(projectCard, /class="project-visual"/);
+  const listCardRule = componentsCss.match(/\.project-card,\s*\.article-card\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(listCardRule, /background:\s*var\(--md-sys-color-surface-container\)/);
+  assert.doesNotMatch(listCardRule, /surface-container-lowest/);
+  const listCardVisualRule = componentsCss.match(/\.project-visual,\s*\.article-card-visual\s*\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(listCardVisualRule, /aspect-ratio:\s*16 \/ 9/);
+  assert.doesNotMatch(listCardVisualRule, /min-height:\s*220px/);
+  assert.match(componentsCss, /\.article-card\s*\{[\s\S]*?--article-card-radius:\s*var\(--md-sys-shape-corner-extra-large\)/);
+  assert.match(componentsCss, /\.article-card:is\(:hover, :focus-visible\)\s*\{[^}]*--article-card-radius:\s*var\(--md-sys-shape-corner-extra-extra-large\)/);
+  assert.match(componentsCss, /\.article-card-visual\s*\{[\s\S]*?border-radius:\s*var\(--article-card-radius\)[\s\S]*?transition:\s*border-radius/);
+  assert.match(componentsCss, /\.article-card-copy p\s*\{[^}]*-webkit-line-clamp:\s*2/);
+  assert.match(pagesCss, /\.content-index-layout/);
+  assert.match(pagesCss, /\.content-detail-layout/);
+  assert.match(pagesCss, /grid-template-columns:\s*minmax\(0, 1fr\) minmax\(168px, 190px\)/);
+  assert.match(pagesCss, /grid-template-areas:\s*"header header"\s*"main nav"/);
+  assert.match(pagesCss, /\.page-main\.content-detail-page > \.content-detail-layout\s*\{[^}]*width:\s*100%[^}]*max-width:\s*none/);
+  assert.match(pagesCss, /\.content-detail-layout\s*\{\s*--content-detail-inline-inset[\s\S]*?grid-template-areas:\s*"hero hero"\s*"main nav"/);
+  assert.match(pagesCss, /\.content-detail-header\.has-cover\s*\{[^}]*grid-template-columns:\s*minmax\(420px, 1fr\) clamp\(420px, 42vw, 760px\)[^}]*grid-template-rows:\s*clamp\(320px, 24vw, 428px\)/);
+  assert.match(pagesCss, /\.content-side-nav-inner[\s\S]*?position:\s*sticky/);
+  assert.match(pagesCss, /\.content-side-nav-inner\s*\{[^}]*padding:\s*12px 0 24px 24px/);
+  assert.match(pagesCss, /--content-side-nav-shape-overhang:\s*24px/);
+  assert.match(pagesCss, /\.content-side-nav a\s*\{[^}]*width:\s*calc\(100% \+ var\(--content-side-nav-shape-overhang\)\)[^}]*margin-inline-start:\s*calc\(-1 \* var\(--content-side-nav-shape-overhang\)\)[^}]*padding:\s*10px 12px 10px var\(--content-side-nav-shape-overhang\)/);
+  assert.match(pagesCss, /\.content-side-nav\s*\{[\s\S]*?align-self:\s*stretch/);
+  assert.match(pagesCss, /\.content-side-nav-active-frame\[data-ready\][\s\S]*?var\(--motion-duration-long\)[\s\S]*?var\(--motion-expressive\)/);
+  assert.match(pagesCss, /@media \(max-width: 1199px\)[\s\S]*?grid-template-areas:\s*"header"\s*"nav"\s*"main"/);
+  assert.match(pagesCss, /@media \(max-width: 1199px\)[\s\S]*?grid-template-areas:\s*"hero"\s*"nav"\s*"main"/);
+  assert.match(pagesCss, /@media \(max-width: 1079px\)[\s\S]*?\.content-detail-header\.has-cover\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)[^}]*grid-template-rows:\s*auto auto[^}]*\}[\s\S]*?\.content-detail-cover\s*\{[^}]*aspect-ratio:\s*16 \/ 9/);
+  assert.doesNotMatch(pagesCss, /content-side-nav--(?:compact|wide)/);
+  assert.doesNotMatch(pagesCss, /\.content-side-nav\s*\{[^}]*order:\s*-1/);
+  assert.match(pagesCss, /--content-detail-reading-width:\s*860px/);
+  assert.match(pagesCss, /--content-detail-reading-shift:\s*clamp\(24px, 3vw, 48px\)/);
+  assert.match(pagesCss, /\.content-detail-main > \.prose,[\s\S]*?max-width:\s*var\(--content-detail-reading-width\)[\s\S]*?margin-inline-start:\s*max\(/);
+  assert.match(pagesCss, /\.content-detail-header h1\s*\{[^}]*max-width:\s*none/);
+  assert.doesNotMatch(pagesCss, /\.content-detail-header h1\s*\{[^}]*max-width:\s*16ch/);
+  assert.match(pagesCss, /\.content-detail-meta > time\s*\{[^}]*color:\s*var\(--md-sys-color-on-surface\)/);
+  assert.doesNotMatch(pagesCss, /\.content-detail-meta > time\s*\{[^}]*background/);
+  assert.match(pagesCss, /\.content-detail-byline\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(pagesCss, /\.content-detail-end-meta/);
+  assert.match(astroConfig, /themes:\s*\{\s*light:\s*"github-light",\s*dark:\s*"github-dark"/);
+  assert.match(astroConfig, /defaultColor:\s*false/);
+  assert.match(proseCss, /\.prose pre\.astro-code\s*\{[\s\S]*?background-color:\s*var\(--md-sys-color-surface-container\) !important/);
+  assert.match(proseCss, /:root\[data-theme="dark"\] \.prose \.astro-code span/);
+  assert.match(proseCss, /\.prose table\s*\{[^}]*border:\s*1px solid var\(--md-sys-color-outline-variant\)[^}]*border-radius:\s*var\(--md-sys-shape-corner-small\)/);
+  assert.match(proseCss, /\.prose-table-scroll\s*\{[^}]*overflow-x:\s*auto[^}]*border:\s*1px solid var\(--md-sys-color-outline-variant\)/);
+  assert.match(contentEnhancements, /<dialog[\s\S]*?data-content-image-dialog/);
+  assert.match(contentEnhancements, /\.content-detail-main \.prose img/);
+  assert.match(contentEnhancements, /event\.key !== "Enter" && event\.key !== " "/);
+  assert.match(contentEnhancements, /scrollContainer\.className = "prose-table-scroll"/);
 
   const frontmatterKeys = (source) =>
     (source.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] ?? "")
@@ -197,6 +339,7 @@ test("wires localized content selection into collections and routes", async () =
   const sharedTemplateKeys = [
     "title",
     "summary",
+    "cover",
     "language",
     "translationKey",
     "author",
@@ -218,6 +361,8 @@ test("wires localized content selection into collections and routes", async () =
   assert.match(guide, /astro-content-guide\.en\.md/);
   assert.match(guide, /中文界面优先中文、英文界面优先英文/);
   assert.match(guide, /status.*draft.*publish/);
+  assert.match(guide, /cover: "https:\/\//);
+  assert.match(guide, /右侧文章目录只收集这些二级标题/);
 });
 
 test("builds the root language entry and both localized homepages", async () => {
@@ -242,6 +387,7 @@ test("builds the root language entry and both localized homepages", async () => 
   assert.match(en, /href="\/zh\/"[^>]+data-language-switch/);
 
   for (const html of [zh, en]) {
+    assert.match(html, /<html[^>]+data-palette="tonal-spot"/);
     assert.match(html, /\/images\/profile\/avatar\.jpg/);
     assert.match(
       html,
@@ -254,6 +400,8 @@ test("builds the root language entry and both localized homepages", async () => 
     assert.match(html, /portfolio-theme/);
     assert.equal((html.match(/class="mobile-nav-item/g) ?? []).length, 5);
     assert.match(html, /class="mobile-more-drawer"/);
+    assert.match(html, /class="mobile-navigation-drawer"/);
+    assert.match(html, /data-mobile-drawer-trigger/);
     assert.match(html, /material-symbol/);
     assert.match(html, /<hero-ascii-portrait[^>]+class="hero-ascii-portrait"[^>]+aria-hidden="true"/);
     assert.match(html, /data-ascii-ramp="%#\*\+=-:\."/);
@@ -292,12 +440,35 @@ test("builds every profile section in Chinese and English", async () => {
   assert.doesNotMatch(allHtml, /mailto:galaxyrio\.h\.gmail\.com/i);
 });
 
+test("renders article reading enhancements and simplified metadata", async () => {
+  const html = await readOutput(
+    "zh/blog/2026/personal image host based on cloudflare r2/index.html",
+  );
+  const headerMeta = html.match(/<div class="content-detail-meta"[\s\S]*?<\/div>/)?.[0] ?? "";
+  const byline = html.match(/<dl class="content-detail-byline"[\s\S]*?<\/dl>/)?.[0] ?? "";
+
+  assert.match(headerMeta, /<time[^>]*>2026年8月27日<\/time>/);
+  assert.equal((headerMeta.match(/<span/g) ?? []).length, 0);
+  assert.match(byline, /<dt>作者<\/dt>[\s\S]*?<dt>类别<\/dt>/);
+  assert.doesNotMatch(byline, /content-tags/);
+  assert.ok(
+    html.indexOf('class="content-detail-end-meta"') > html.indexOf('class="prose"'),
+    "expected tags after the article body",
+  );
+  assert.match(html, /<dialog class="content-image-dialog"/);
+  assert.match(html, /class="astro-code astro-code-themes github-light github-dark"/);
+  assert.doesNotMatch(html, /class="astro-code[^"]*" style="background-color:#24292e/);
+  assert.match(html, /<table>/);
+});
+
 test("keeps the Astro architecture, content model, and design system explicit", async () => {
-  const [layout, desktopNavigation, mobileHeader, heroAsciiPortrait, i18n, contentConfig, globalCss, tokensCss, baseCss, layoutCss, componentsCss, pagesCss, symbol, packageJson, config, avatar, symbolFont, spaceMonoFont] =
+  const [layout, desktopNavigation, mobileHeader, mobileNavigation, themeToggle, heroAsciiPortrait, i18n, contentConfig, globalCss, tokensCss, baseCss, layoutCss, componentsCss, pagesCss, symbol, packageJson, config, avatar, symbolFont, spaceMonoFont] =
     await Promise.all([
       readFile(new URL("../src/layouts/BaseLayout.astro", import.meta.url), "utf8"),
       readFile(new URL("../src/components/DesktopNavigation.astro", import.meta.url), "utf8"),
       readFile(new URL("../src/components/MobileHeader.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/MobileNavigation.astro", import.meta.url), "utf8"),
+      readFile(new URL("../src/components/ThemeToggle.astro", import.meta.url), "utf8"),
       readFile(new URL("../src/components/HeroAsciiPortrait.astro", import.meta.url), "utf8"),
       readFile(new URL("../src/i18n/config.ts", import.meta.url), "utf8"),
       readFile(new URL("../src/content.config.ts", import.meta.url), "utf8"),
@@ -323,6 +494,17 @@ test("keeps the Astro architecture, content model, and design system explicit", 
   assert.match(mobileHeader, /class="mobile-brand-avatar"/);
   assert.match(mobileHeader, /<img[\s\S]*?src=\{avatarSrc\}[\s\S]*?alt=\{avatarAlt\}/);
   assert.doesNotMatch(mobileHeader, /\{brand\}/);
+  assert.match(mobileHeader, /data-mobile-drawer-trigger/);
+  assert.match(mobileHeader, /aria-controls=\{drawerId\}/);
+  assert.match(mobileNavigation, /class="mobile-navigation-drawer"/);
+  assert.match(mobileNavigation, /items\.map\(\(item\)/);
+  assert.match(mobileNavigation, /<LanguageSwitch/);
+  assert.match(mobileNavigation, /<ThemeToggle/);
+  assert.match(mobileNavigation, /mobile-navigation-drawer-collapse-icon/);
+  assert.match(mobileNavigation, /drawer\.showModal\(\)/);
+  assert.match(mobileNavigation, /activeTrigger\?\.focus\(\)/);
+  assert.doesNotMatch(mobileNavigation, /arrow_forward|menu_open|drawerTitle/);
+  assert.match(themeToggle, /data-theme-icon/);
   assert.match(heroAsciiPortrait, /String\.raw/);
   assert.match(heroAsciiPortrait, /<hero-ascii-portrait[\s\S]*?class="hero-ascii-portrait"[\s\S]*?aria-hidden="true"/);
   assert.match(heroAsciiPortrait, /const densityRamp = "%#\*\+=-:\."/);
@@ -348,13 +530,21 @@ test("keeps the Astro architecture, content model, and design system explicit", 
   assert.deepEqual(new Set(portraitSource.replace(/\s/g, "")), new Set("%#*+=-:."));
   assert.doesNotMatch(heroAsciiPortrait, /<(?:img|svg)\b/i);
   assert.match(layout, /portfolio-locale/);
+  assert.match(layout, /const colorPalette:\s*"tonal-spot" \| "expressive" = "tonal-spot"/);
+  assert.match(layout, /<html lang=\{htmlLang\} data-palette=\{colorPalette\}>/);
   assert.match(i18n, /BASE_URL/);
   assert.match(i18n, /switchLocalePath/);
   assert.match(contentConfig, /defineCollection/);
   assert.match(contentConfig, /language/);
   assert.match(globalCss, /tokens\.css/);
   assert.match(tokensCss, /--md-sys-color-primary:/);
-  assert.match(tokensCss, /SchemeExpressive, spec 2025/);
+  assert.match(tokensCss, /SchemeTonalSpot, spec 2025/);
+  assert.match(tokensCss, /--md-sys-color-primary:\s*#655789/);
+  assert.match(tokensCss, /--md-sys-color-surface:\s*#fdf7fe/);
+  assert.match(tokensCss, /:root\[data-palette="expressive"\]/);
+  assert.match(tokensCss, /:root\[data-theme="dark"\]\[data-palette="expressive"\]/);
+  assert.match(tokensCss, /:root\[data-palette="expressive"\][\s\S]*?--md-sys-color-primary:\s*#6850a5/);
+  assert.match(tokensCss, /:root\[data-theme="dark"\]\[data-palette="expressive"\][\s\S]*?--md-sys-color-primary:\s*#d4c3ff/);
   assert.match(tokensCss, /--rail-width:\s*96px/);
   assert.match(tokensCss, /--shadow-ambient:/);
   assert.match(tokensCss, /--elevation-2:\s*0 8px 28px -8px var\(--shadow-color\)/);
@@ -368,6 +558,13 @@ test("keeps the Astro architecture, content model, and design system explicit", 
   assert.match(layoutCss, /\.rail-link-indicator/);
   assert.match(layoutCss, /\.brand-mark > img/);
   assert.match(layoutCss, /\.mobile-brand-avatar > img/);
+  assert.match(layoutCss, /@media \(max-width: 599px\)[\s\S]*?\.mobile-nav\s*\{[\s\S]*?display:\s*none/);
+  assert.match(layoutCss, /\.mobile-navigation-drawer\s*\{[\s\S]*?width:\s*min\(86vw, 360px\)/);
+  assert.match(layoutCss, /\.mobile-drawer-trigger\s*\{[\s\S]*?display:\s*grid/);
+  assert.match(layoutCss, /\.mobile-navigation-drawer-collapse-icon::before/);
+  assert.match(layoutCss, /\.mobile-navigation-drawer-link\s*\{[\s\S]*?grid-template-columns:\s*32px minmax\(0, 1fr\)/);
+  assert.match(layoutCss, /@media \(max-width: 599px\)[\s\S]*?\.mobile-brand-avatar\s*\{[\s\S]*?width:\s*36px[\s\S]*?border-radius:\s*var\(--md-sys-shape-corner-full\)/);
+  assert.match(componentsCss, /\[data-theme-icon\][\s\S]*?height:\s*24px[\s\S]*?line-height:\s*0/);
   assert.match(layoutCss, /\.brand-mark::after/);
   assert.match(layoutCss, /\.brand-mark:focus-visible::after/);
   assert.match(layoutCss, /width:\s*56px/);
@@ -494,7 +691,7 @@ test("keeps generated internal links and assets resolvable", async () => {
   };
 
   const htmlFiles = await findHtml(distRoot);
-  assert.equal(htmlFiles.length, 15);
+  assert.ok(htmlFiles.length >= 15, "expected every base page plus published content pages");
 
   for (const htmlFile of htmlFiles) {
     const html = await readFile(htmlFile, "utf8");

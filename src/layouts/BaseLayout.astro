@@ -54,6 +54,8 @@ const navigation: NavItem[] = navItems ?? [
 
 const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
 const htmlLang = lang === "zh" ? "zh-CN" : "en";
+// Both generated palettes are retained in tokens.css; change this to "expressive" to restore the previous scheme.
+const colorPalette: "tonal-spot" | "expressive" = "tonal-spot";
 const homeHref = routeFor(lang);
 const canonical = Astro.site ? new URL(activePath, Astro.site).toString() : undefined;
 const alternateLinks = locales.map((locale) => ({
@@ -65,13 +67,13 @@ const alternateLinks = locales.map((locale) => ({
 ---
 
 <!doctype html>
-<html lang={htmlLang}>
+<html lang={htmlLang} data-palette={colorPalette}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
-    <meta name="theme-color" content="#fff7ff" data-theme-color />
+    <meta name="theme-color" content="#fdf7fe" data-theme-color />
     <link rel="icon" type="image/jpeg" href={assetPath(profile.avatar.src)} />
     {noindex && <meta name="robots" content="noindex,nofollow" />}
     {canonical && <link rel="canonical" href={canonical} />}
@@ -156,6 +158,8 @@ const alternateLinks = locales.map((locale) => ({
         items={navigation}
         activePath={activePath}
         navigationLabel={t(lang, "a11y.primaryNavigation")}
+        themeLabel={t(lang, "actions.themeToggle")}
+        languageLabel={t(lang, "actions.languageSwitch")}
       />
     </div>
 

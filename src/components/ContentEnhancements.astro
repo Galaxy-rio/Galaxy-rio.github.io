@@ -1,0 +1,120 @@
+---
+import MaterialSymbol from "./MaterialSymbol.astro";
+
+interface Props {
+  dialogLabel: string;
+  enlargeLabel: string;
+  closeLabel: string;
+}
+
+const { dialogLabel, enlargeLabel, closeLabel } = Astro.props;
+---
+
+<dialog
+  class="content-image-dialog"
+  aria-label={dialogLabel}
+  data-content-image-dialog
+  data-enlarge-label={enlargeLabel}
+>
+  <div class="content-image-dialog-surface">
+    <button
+      class="content-image-dialog-close"
+      type="button"
+      aria-label={closeLabel}
+      data-content-image-dialog-close
+    >
+      <MaterialSymbol name="close" />
+    </button>
+    <img alt="" data-content-image-dialog-image />
+    <p class="content-image-dialog-caption" hidden data-content-image-dialog-caption></p>
+  </div>
+</dialog>
+
+<script>
+  document.querySelectorAll<HTMLDialogElement>("[data-content-image-dialog]").forEach((dialog) => {
+    if (dialog.dataset.enhanced === "true") return;
+    dialog.dataset.enhanced = "true";
+
+    const page = dialog.closest("main");
+    const dialogImage = dialog.querySelector<HTMLImageElement>(
+      "[data-content-image-dialog-image]",
+    );
+    const caption = dialog.querySelector<HTMLElement>(
+      "[data-content-image-dialog-caption]",
+    );
+    const closeButton = dialog.querySelector<HTMLButtonElement>(
+      "[data-content-image-dialog-close]",
+    );
+    const enlargeLabel = dialog.dataset.enlargeLabel ?? "Enlarge image";
+    let activeImage: HTMLImageElement | null = null;
+
+    if (!page || !dialogImage || !caption || !closeButton) return;
+
+    const closeDialog = () => {
+      if (dialog.open && typeof dialog.close === "function") {
+        dialog.close();
+      } else {
+        dialog.removeAttribute("open");
+        activeImage?.focus();
+      }
+    };
+
+    const openDialog = (image: HTMLImageElement) => {
+      activeImage = image;
+      dialogImage.src = image.currentSrc || image.src;
+      dialogImage.alt = image.alt;
+
+      const figureCaption = image
+        .closest("figure")
+        ?.querySelector("figcaption")
+        ?.textContent?.trim();
+      const captionText = figureCaption || image.alt.trim();
+      caption.textContent = captionText;
+      caption.hidden = captionText.length === 0;
+
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+      closeButton.focus();
+    };
+
+    page.querySelectorAll<HTMLImageElement>(".content-detail-main .prose img").forEach((image) => {
+      if (image.dataset.contentZoomReady === "true") return;
+      image.dataset.contentZoomReady = "true";
+      image.classList.add("is-zoomable");
+      image.tabIndex = 0;
+      image.setAttribute("role", "button");
+      image.setAttribute("aria-haspopup", "dialog");
+      image.setAttribute(
+        "aria-label",
+        image.alt.trim() ? `${enlargeLabel}: ${image.alt.trim()}` : enlargeLabel,
+      );
+
+      image.addEventListener("click", (event) => {
+        event.preventDefault();
+        openDialog(image);
+      });
+      image.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openDialog(image);
+      });
+    });
+
+    page.querySelectorAll<HTMLTableElement>(".content-detail-main .prose table").forEach((table) => {
+      if (table.parentElement?.classList.contains("prose-table-scroll")) return;
+      const scrollContainer = document.createElement("div");
+      scrollContainer.className = "prose-table-scroll";
+      table.before(scrollContainer);
+      scrollContainer.append(table);
+    });
+
+    closeButton.addEventListener("click", closeDialog);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) closeDialog();
+    });
+    dialog.addEventListener("close", () => activeImage?.focus());
+  });
+</script>

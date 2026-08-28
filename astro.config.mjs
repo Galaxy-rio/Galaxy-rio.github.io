@@ -12,4 +12,13 @@ export default defineConfig({
   site: owner ? `https://${owner}.github.io` : undefined,
   base: isProjectPage ? `/${repository}` : "/",
   trailingSlash: "always",
+  markdown: {
+    shikiConfig: {
+      themes: {
+        light: "github-light",
+        dark: "github-dark",
+      },
+      defaultColor: false,
+    },
+  },
 });
