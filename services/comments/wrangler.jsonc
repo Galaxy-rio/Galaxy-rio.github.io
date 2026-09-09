@@ -1,0 +1,24 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "galaxyrio-comments",
+  "main": "src/index.js",
+  "compatibility_date": "2026-03-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "b339fb670258ee565095d1163834a06d",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "comments.galaxyrio.top", "custom_domain": true }],
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "galaxyrio-comments",
+    "database_id": "00000000-0000-0000-0000-000000000000"
+  }],
+  "alias": {
+    "jsdom": "./src/empty.cjs",
+    "tencentcloud-sdk-nodejs": "./src/empty.cjs",
+    "nodemailer": "./src/empty.cjs",
+    "twikoo-func/utils/logger": "./src/logger.cjs"
+  },
+  "dev": { "port": 8787 },
+  "observability": { "enabled": false }
+}

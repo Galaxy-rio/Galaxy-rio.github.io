@@ -724,7 +724,8 @@
 .content-detail-byline,
 .content-detail-main > .prose,
 .content-detail-end-meta,
-.content-links {
+.content-links,
+.blog-comments {
   width: min(100%, var(--content-detail-reading-width));
   max-width: var(--content-detail-reading-width);
   margin-inline-start: max(

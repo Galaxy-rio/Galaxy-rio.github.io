@@ -1,0 +1,15 @@
+export const siteConfig = {
+  SITE_NAME: 'galaxyrio',
+  SITE_URL: 'https://www.galaxyrio.top',
+  CORS_ALLOW_ORIGIN: 'https://www.galaxyrio.top,https://galaxyrio.top,https://galaxy-rio.github.io',
+  MASTER_TAG: '站长',
+  DISPLAYED_FIELDS: 'nick,mail,link',
+  REQUIRED_FIELDS: 'nick',
+  SHOW_IMAGE: 'false',
+  SHOW_EMOTION: 'false',
+  HIGHLIGHT: 'false',
+  LIMIT_LENGTH: '3000',
+  LIMIT_PER_MINUTE: '5',
+  LIMIT_PER_MINUTE_ALL: '50',
+  COMMENT_PAGE_SIZE: '8',
+};

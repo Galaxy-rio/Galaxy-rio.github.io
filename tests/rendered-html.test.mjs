@@ -461,6 +461,29 @@ test("renders article reading enhancements and simplified metadata", async () =>
   assert.match(html, /<table>/);
 });
 
+test("places one shared comment thread at the end of both blog translations", async () => {
+  const slug = "2026/personal image host based on cloudflare r2";
+  const rendered = await Promise.all(["zh", "en"].map((lang) =>
+    readOutput(`${lang}/blog/${slug}/index.html`),
+  ));
+  const paths = rendered.map((html) => html.match(/data-comment-path="([^"]+)"/)?.[1]);
+  assert.equal(paths[0], "/blog/2026/personal%20image%20host%20based%20on%20cloudflare%20r2/");
+  assert.equal(paths[1], paths[0]);
+  for (const html of rendered) {
+    assert.equal((html.match(/id="twikoo-comments"/g) ?? []).length, 1);
+    assert.ok(html.indexOf('id="comments"') > html.indexOf('class="content-detail-end-meta"'));
+    assert.match(html, /data-endpoint="https:\/\/comments\.galaxyrio\.top"/);
+    const script = html.match(/data-comment-script="([^"]+)"/)?.[1];
+    assert.ok(script?.startsWith("/_astro/"), "comment client must be hosted with the site");
+    await access(new URL(`../dist${script}`, import.meta.url));
+  }
+  assert.match(rendered[0], /data-comment-language="zh-CN"/);
+  assert.match(rendered[1], /data-comment-language="en"/);
+  for (const page of ["zh/blog/index.html", "en/blog/index.html", "zh/index.html", "zh/projects/index.html"]) {
+    assert.doesNotMatch(await readOutput(page), /data-blog-comments/);
+  }
+});
+
 test("keeps the Astro architecture, content model, and design system explicit", async () => {
   const [layout, desktopNavigation, mobileHeader, mobileNavigation, themeToggle, heroAsciiPortrait, i18n, contentConfig, globalCss, tokensCss, baseCss, layoutCss, componentsCss, pagesCss, symbol, packageJson, config, avatar, symbolFont, spaceMonoFont] =
     await Promise.all([

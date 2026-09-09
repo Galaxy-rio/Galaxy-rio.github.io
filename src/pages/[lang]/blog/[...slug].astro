@@ -1,5 +1,6 @@
 ---
 import { getCollection, render, type CollectionEntry } from "astro:content";
+import BlogComments from "../../../components/BlogComments.astro";
 import ContentEnhancements from "../../../components/ContentEnhancements.astro";
 import ContentSideNav from "../../../components/ContentSideNav.astro";
 import MaterialSymbol from "../../../components/MaterialSymbol.astro";
@@ -191,6 +192,7 @@ const sideNavigationItems = sectionHeadings.map((heading) => ({
           </aside>
         )
       }
+      <BlogComments lang={lang} slug={contentSlugFromId(entry.id)} />
     </div>
   </article>
 
