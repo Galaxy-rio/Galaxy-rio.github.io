@@ -1,0 +1,733 @@
+.blog-comments {
+  margin-block: clamp(48px, 7vw, 80px) 0;
+  color: var(--md-sys-color-on-surface);
+  scroll-margin-top: 40px;
+}
+
+.blog-comments-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.blog-comments-mark {
+  display: grid;
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--shape-lg) var(--shape-lg) var(--shape-lg) var(--shape-xs);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.blog-comments-mark .material-symbol {
+  font-size: 32px;
+}
+
+.blog-comments-header h2 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--md-sys-typescale-headline-medium-size);
+  font-weight: 620;
+  line-height: var(--md-sys-typescale-headline-medium-line-height);
+}
+
+.blog-comments-header p,
+.blog-comments-feedback,
+.blog-comments-noscript {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+  line-height: var(--md-sys-typescale-body-large-line-height);
+}
+
+.blog-comments-feedback,
+.blog-comments-noscript {
+  padding: var(--space-6);
+  border-radius: var(--shape-xl);
+  background: var(--md-sys-color-surface-container-low);
+}
+
+.blog-comments-feedback p {
+  margin: 0;
+}
+
+.blog-comments-feedback[hidden],
+.blog-comments-retry[hidden] {
+  display: none;
+}
+
+.blog-comments-retry {
+  margin-top: var(--space-4);
+  cursor: pointer;
+}
+
+/* Vue replaces the mount element. Scope the theme to our persistent section. */
+#comments .twikoo {
+  --twikoo-theme: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+
+#comments .tk-submit {
+  margin: 0;
+  padding: clamp(20px, 3vw, 28px);
+  border-radius: var(--shape-xl);
+  background: var(--md-sys-color-surface-container-low);
+}
+
+#comments .tk-submit > .tk-row > .tk-avatar {
+  display: none;
+}
+
+#comments .tk-col,
+#comments .tk-main {
+  min-width: 0;
+  flex: 1;
+}
+
+#comments .tk-meta-input {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+#comments .tk-meta-input .el-input {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+#comments .el-input__inner,
+#comments .el-textarea__inner {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--shape-md);
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--font-sans);
+  font-size: var(--md-sys-typescale-body-large-size);
+  transition: border-color var(--motion-duration-short) var(--motion-standard),
+    box-shadow var(--motion-duration-short) var(--motion-standard),
+    background-color var(--motion-duration-short) var(--motion-standard);
+}
+
+#comments .el-input__inner::placeholder,
+#comments .el-textarea__inner::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 1;
+}
+
+#comments .tk-meta-input .el-input-group__prepend {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 8px;
+  inset-inline-start: 16px;
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+  pointer-events: none;
+}
+
+#comments .tk-meta-input .el-input__inner {
+  height: 60px;
+  padding: 25px 16px 9px;
+  border: 0;
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--shape-md) var(--shape-md) 0 0;
+  line-height: var(--md-sys-typescale-body-large-line-height);
+}
+
+#comments .tk-meta-input .el-input:focus-within .el-input-group__prepend {
+  color: var(--md-sys-color-primary);
+}
+
+#comments .el-input__inner:hover,
+#comments .el-textarea__inner:hover {
+  border-color: var(--md-sys-color-on-surface);
+}
+
+#comments .el-input__inner:focus,
+#comments .el-textarea__inner:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: inset 0 -2px 0 var(--md-sys-color-primary);
+}
+
+#comments .tk-meta-input input:invalid {
+  border: 0;
+  border-bottom: 1px solid var(--md-sys-color-error);
+  box-shadow: inset 0 -1px 0 var(--md-sys-color-error);
+}
+
+#comments .tk-input .el-textarea__inner {
+  /* Override Element UI's inline autosize minimum while preserving expansion. */
+  min-height: 156px !important;
+  padding: 18px 20px 36px;
+  border-color: transparent;
+  border-bottom-color: var(--md-sys-color-outline);
+  border-radius: var(--shape-md) var(--shape-md) 0 0;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+#comments .tk-input .el-textarea__inner:focus {
+  border-bottom-color: var(--md-sys-color-primary);
+}
+
+#comments .el-input__count {
+  right: 16px;
+  bottom: 10px;
+  padding: 0 4px;
+  border-radius: var(--shape-xs);
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-variant-numeric: tabular-nums;
+}
+
+#comments .tk-row.actions {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+}
+
+#comments .tk-row-actions-start {
+  min-width: 0;
+}
+
+#comments .el-button {
+  position: relative;
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  overflow: hidden;
+  margin: 0;
+  padding: 0 24px;
+  border: 1px solid transparent;
+  border-radius: var(--shape-full);
+  font-family: var(--font-sans);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 650;
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  isolation: isolate;
+  transition: border-radius var(--motion-duration-medium) var(--motion-expressive),
+    box-shadow var(--motion-duration-short) var(--motion-standard);
+}
+
+#comments .el-button::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-duration-short) var(--motion-standard);
+}
+
+#comments .el-button:not(:disabled):hover::after {
+  opacity: var(--state-hover-opacity);
+}
+
+#comments .el-button:not(:disabled):is(:focus-visible, :active)::after {
+  opacity: var(--state-pressed-opacity);
+}
+
+#comments .el-button:not(:disabled):active {
+  border-radius: var(--shape-lg);
+}
+
+#comments .el-button--primary {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+#comments .el-button--default {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+#comments .el-button--text {
+  background: transparent;
+  color: var(--md-sys-color-primary);
+}
+
+#comments .el-button:is(:disabled, .is-disabled) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+  cursor: not-allowed;
+}
+
+#comments .tk-submit-action-icon,
+#comments .tk-comments-title .tk-icon {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  border-radius: var(--shape-full);
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition: background-color var(--motion-duration-short) var(--motion-standard);
+}
+
+#comments .tk-submit-action-icon svg,
+#comments .tk-comments-title .tk-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+#comments .tk-submit-action-icon:hover,
+#comments .tk-comments-title .tk-icon:hover,
+#comments .tk-admin-close:hover {
+  background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+}
+
+#comments .tk-comments-container {
+  min-height: 0;
+  margin-top: var(--space-6);
+}
+
+#comments .tk-comments-title {
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: 600;
+}
+
+#comments .tk-comments-title > span:last-child {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+#comments .tk-comments-count {
+  padding: 6px 14px;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 600;
+  visibility: visible;
+}
+
+#comments .tk-comments-no {
+  min-height: 168px;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: var(--shape-xl);
+  background: var(--md-sys-color-surface-container-low);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-medium-size);
+}
+
+#comments .tk-comments-no::before {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  content: "more_horiz" / "";
+  font-family: "Material Symbols Rounded";
+  font-size: 28px;
+  font-weight: 400;
+  font-feature-settings: "liga";
+  line-height: 1;
+}
+
+#comments .tk-comments-container > .tk-comment {
+  gap: var(--space-4);
+  margin: 0 0 var(--space-4);
+  padding: var(--space-6);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);
+  border-radius: var(--shape-xl);
+  background: var(--md-sys-color-surface-container-low);
+}
+
+#comments .tk-avatar {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-secondary-container);
+}
+
+#comments .tk-avatar .tk-avatar-img {
+  width: 100%;
+  height: 100%;
+  color: var(--md-sys-color-on-secondary-container);
+  object-fit: cover;
+}
+
+#comments .tk-comment {
+  word-break: normal;
+}
+
+#comments .tk-comment .tk-row {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+#comments .tk-nick {
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-medium-size);
+  font-weight: 650;
+}
+
+#comments .tk-time,
+#comments .tk-extras {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+}
+
+#comments .tk-action-link {
+  min-height: 40px;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--shape-full);
+  color: var(--md-sys-color-primary);
+}
+
+#comments .tk-action-link:hover {
+  background: var(--md-sys-color-secondary-container);
+}
+
+#comments .tk-action-icon,
+#comments .tk-action-icon-solid,
+#comments .tk-nick-link:hover {
+  color: var(--md-sys-color-primary);
+}
+
+#comments .tk-content,
+#comments .tk-preview-container {
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-body-large-size);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+#comments .tk-content p,
+#comments .tk-preview-container p {
+  margin: 0 0 var(--space-3);
+}
+
+#comments .tk-content > :last-child,
+#comments .tk-preview-container > :last-child {
+  margin-bottom: 0;
+}
+
+#comments .tk-content a,
+#comments .tk-preview-container a {
+  color: var(--md-sys-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#comments .tk-content pre,
+#comments .tk-preview-container pre {
+  overflow-x: auto;
+  padding: var(--space-4);
+  border-radius: var(--shape-md);
+  background: var(--md-sys-color-surface-container-highest);
+}
+
+#comments .tk-content code,
+#comments .tk-preview-container code {
+  padding: 2px 5px;
+  border-radius: var(--shape-xs);
+  background: var(--md-sys-color-surface-container-highest);
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+#comments .tk-content pre code,
+#comments .tk-preview-container pre code {
+  padding: 0;
+}
+
+#comments .tk-content img {
+  max-width: 100%;
+  border-radius: var(--shape-sm);
+}
+
+#comments .tk-replies {
+  margin-top: var(--space-4);
+  padding-inline-start: var(--space-4);
+  border-inline-start: 2px solid var(--md-sys-color-outline-variant);
+}
+
+#comments .tk-replies .tk-comment {
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+#comments .tk-replies .tk-comment:first-child {
+  margin-top: 0;
+}
+
+#comments .tk-replies .tk-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+#comments .tk-comment .tk-submit {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--shape-lg);
+  background: var(--md-sys-color-surface-container);
+}
+
+#comments .tk-comment:focus-within .tk-actions {
+  display: inline;
+}
+
+#comments .tk-tag {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: var(--md-sys-typescale-label-small-size);
+  line-height: var(--md-sys-typescale-label-large-line-height);
+}
+
+#comments .tk-tag-green,
+#comments .tk-tag-blue {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+#comments .tk-tag-red {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+#comments .tk-preview-container {
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--shape-lg);
+  background: var(--md-sys-color-surface-container-lowest);
+}
+
+#comments .tk-expand {
+  min-height: 44px;
+  border-radius: var(--shape-full);
+  color: var(--md-sys-color-primary);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 600;
+}
+
+#comments .tk-expand:hover {
+  background: var(--md-sys-color-secondary-container);
+}
+
+#comments .tk-footer {
+  margin-top: var(--space-4);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--md-sys-typescale-body-small-size);
+}
+
+#comments .tk-footer a {
+  color: var(--md-sys-color-primary);
+}
+
+#comments .tk-error-message,
+#comments .tk-comments-error {
+  color: var(--md-sys-color-error);
+}
+
+#comments .el-loading-mask {
+  border-radius: var(--shape-xl);
+  background: color-mix(in srgb, var(--md-sys-color-surface) 92%, transparent);
+}
+
+#comments .el-loading-spinner .path {
+  stroke: var(--md-sys-color-primary);
+}
+
+#comments .tk-admin-container {
+  z-index: 2;
+}
+
+#comments .tk-admin {
+  padding: var(--space-6);
+  border-radius: var(--shape-xl);
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: var(--elevation-2);
+  scrollbar-color: var(--md-sys-color-outline) transparent;
+}
+
+#comments .tk-admin-close {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 12px;
+  box-sizing: border-box;
+  border-radius: var(--shape-full);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+#comments .tk-login-title {
+  color: var(--md-sys-color-on-surface);
+  font-size: var(--md-sys-typescale-title-large-size);
+  font-weight: 600;
+}
+
+#comments .tk-login,
+#comments .tk-regist {
+  padding: 0;
+}
+
+#comments .tk-login form,
+#comments .tk-regist form {
+  width: min(100%, 440px);
+}
+
+#comments .tk-password {
+  position: relative;
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+#comments .tk-password .el-input-group__prepend {
+  position: absolute;
+  inset-block-start: 8px;
+  inset-inline-start: 16px;
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: var(--md-sys-typescale-label-medium-size);
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+}
+
+#comments .tk-password .el-input__inner {
+  grid-area: 1 / 1;
+  min-width: 0;
+  height: 60px;
+  padding: 25px 40px 9px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--shape-md) var(--shape-md) 0 0;
+}
+
+#comments .tk-password .el-input__suffix {
+  position: static;
+  z-index: 1;
+  grid-area: 1 / 1;
+  justify-self: end;
+  margin-inline-end: 12px;
+  transform: none !important;
+}
+
+#comments .tk-admin .el-input-group__prepend,
+#comments .tk-admin .el-input-group__append {
+  border-color: var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+#comments .tk-password .el-input-group__prepend,
+#comments .tk-password .el-input-group__append {
+  border: 0;
+  background: transparent;
+}
+
+#comments .tk-password .el-input-group__append {
+  display: block;
+  width: auto;
+  grid-area: 1 / 2;
+  padding: 0;
+}
+
+#comments .tk-login-msg,
+#comments .tk-login-msg a {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+#comments .tk-admin-comment-filter-type,
+#comments .tk-admin-config-group-title {
+  border-color: var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface);
+}
+
+@media (max-width: 599px) {
+  .blog-comments {
+    scroll-margin-top: 84px;
+  }
+
+  .blog-comments-header {
+    gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+
+  .blog-comments-mark {
+    width: 48px;
+    height: 48px;
+  }
+
+  .blog-comments-header h2 {
+    font-size: var(--md-sys-typescale-headline-small-size);
+    line-height: var(--md-sys-typescale-headline-small-line-height);
+  }
+
+  #comments .tk-meta-input {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  #comments .tk-submit,
+  #comments .tk-comments-container > .tk-comment,
+  #comments .tk-admin {
+    padding: var(--space-4);
+  }
+
+  #comments .tk-comments-container > .tk-comment {
+    gap: var(--space-3);
+  }
+
+  #comments .tk-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  #comments .tk-replies {
+    padding-inline-start: var(--space-3);
+  }
+
+  #comments .tk-replies .tk-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  #comments .el-button {
+    padding-inline: 20px;
+  }
+}

@@ -1,5 +1,7 @@
 ---
 import twikooScript from "twikoo/dist/twikoo.min.js?url";
+import "../styles/comments.css";
+import MaterialSymbol from "./MaterialSymbol.astro";
 import type { Locale } from "../i18n/config";
 
 interface Props {
@@ -15,6 +17,12 @@ const commentPath = `/blog/${slug.split("/").map(encodeURIComponent).join("/")}/
 const text = {
   zh: {
     title: "评论",
+    description: "分享你的想法，或留下一个问题。",
+    placeholder: "写下你的想法…",
+    refresh: "刷新评论",
+    manage: "管理评论",
+    close: "关闭评论管理",
+    markdown: "Markdown 格式帮助",
     loading: "正在加载评论…",
     unavailable: "评论暂时无法加载，请稍后重试。",
     retry: "重新加载",
@@ -22,6 +30,12 @@ const text = {
   },
   en: {
     title: "Comments",
+    description: "Share a thought or leave a question.",
+    placeholder: "What's on your mind?",
+    refresh: "Refresh comments",
+    manage: "Manage comments",
+    close: "Close comment management",
+    markdown: "Markdown formatting help",
     loading: "Loading comments…",
     unavailable: "Comments could not be loaded. Please try again.",
     retry: "Try again",
@@ -42,15 +56,30 @@ const text = {
   data-comment-script={twikooScript}
   data-loading-message={text.loading}
   data-error-message={text.unavailable}
+  data-comment-placeholder={text.placeholder}
+  data-refresh-label={text.refresh}
+  data-manage-label={text.manage}
+  data-close-label={text.close}
+  data-markdown-label={text.markdown}
 >
-  <h2 id="comments-title">{text.title}</h2>
+  <header class="blog-comments-header">
+    <span class="blog-comments-mark" aria-hidden="true">
+      <MaterialSymbol name="more_horiz" opticalSize={32} />
+    </span>
+    <div>
+      <h2 id="comments-title">{text.title}</h2>
+      <p>{text.description}</p>
+    </div>
+  </header>
   <div class="blog-comments-feedback" data-comments-feedback hidden>
     <p role="status" aria-live="polite" data-comments-status></p>
-    <button type="button" class="blog-comments-retry" data-comments-retry hidden>
+    <button type="button" class="button button-tonal blog-comments-retry" data-comments-retry hidden>
       {text.retry}
     </button>
   </div>
-  <div id="twikoo-comments" data-comments-mount></div>
+  <div class="blog-comments-widget" data-comments-widget>
+    <div id="twikoo-comments" data-comments-mount></div>
+  </div>
   <noscript><p class="blog-comments-noscript">{text.javascript}</p></noscript>
 </section>
 
@@ -98,8 +127,50 @@ const text = {
     const status = section.querySelector<HTMLElement>("[data-comments-status]");
     const retry = section.querySelector<HTMLButtonElement>("[data-comments-retry]");
     const mount = section.querySelector<HTMLElement>("[data-comments-mount]");
-    if (!feedback || !status || !retry || !mount) return;
+    const widget = section.querySelector<HTMLElement>("[data-comments-widget]");
+    if (!feedback || !status || !retry || !mount || !widget) return;
     let state: "idle" | "loading" | "ready" | "error" = "idle";
+
+    // Twikoo replaces its mount node and renders new forms when replying.
+    // Keep labels and keyboard access attached to the rendered controls.
+    const enhancedControls = new WeakSet<HTMLElement>();
+    const enhanceControls = () => {
+      widget.querySelectorAll<HTMLInputElement>(".tk-meta-input input, .tk-password input").forEach((input) => {
+        const label = input.parentElement?.querySelector(".el-input-group__prepend")?.textContent?.trim();
+        if (label) input.setAttribute("aria-label", label);
+      });
+      widget.querySelectorAll<HTMLTextAreaElement>(".tk-input textarea").forEach((input) => {
+        input.setAttribute("aria-label", section.dataset.commentPlaceholder ?? "");
+        if (!input.placeholder) input.placeholder = section.dataset.commentPlaceholder ?? "";
+      });
+      widget.querySelectorAll<HTMLElement>(".tk-comments-title .tk-icon.__comments").forEach((icon) => {
+        // Vue keeps a comment in the refresh slot while comments are loading.
+        const label = icon === icon.parentNode?.firstChild
+          ? section.dataset.refreshLabel
+          : section.dataset.manageLabel;
+        if (!label) return;
+        icon.setAttribute("role", "button");
+        icon.setAttribute("aria-label", label);
+        icon.title = label;
+        icon.tabIndex = 0;
+        if (enhancedControls.has(icon)) return;
+        icon.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            icon.click();
+          }
+        });
+        enhancedControls.add(icon);
+      });
+      widget.querySelectorAll<HTMLAnchorElement>(".tk-submit-action-icon.__markdown").forEach((link) => {
+        link.setAttribute("aria-label", section.dataset.markdownLabel ?? "");
+        link.title = section.dataset.markdownLabel ?? "";
+      });
+      widget.querySelectorAll<HTMLAnchorElement>(".tk-admin-close").forEach((link) => {
+        link.setAttribute("aria-label", section.dataset.closeLabel ?? "");
+      });
+    };
+    new MutationObserver(enhanceControls).observe(widget, { childList: true, subtree: true });
 
     const load = async () => {
       if (state === "loading" || state === "ready") return;
@@ -107,15 +178,17 @@ const text = {
       feedback.hidden = false;
       status.textContent = section.dataset.loadingMessage ?? "";
       retry.hidden = true;
-      mount.setAttribute("aria-busy", "true");
+      widget.setAttribute("aria-busy", "true");
       try {
         const client = await loadClient(section.dataset.commentScript!);
+        if (!mount.isConnected) widget.replaceChildren(mount);
         await client.init({
           envId: section.dataset.endpoint!,
           el: `#${mount.id}`,
           path: section.dataset.commentPath!,
           lang: section.dataset.commentLanguage!,
         });
+        enhanceControls();
         state = "ready";
         feedback.hidden = true;
       } catch {
@@ -123,7 +196,7 @@ const text = {
         status.textContent = section.dataset.errorMessage ?? "";
         retry.hidden = false;
       } finally {
-        mount.setAttribute("aria-busy", "false");
+        widget.setAttribute("aria-busy", "false");
       }
     };
 
@@ -141,116 +214,3 @@ const text = {
     }
   });
 </script>
-
-<style is:global>
-  .blog-comments {
-    margin-block: clamp(48px, 7vw, 80px) 0;
-    padding-top: clamp(28px, 4vw, 40px);
-    border-top: 1px solid var(--md-sys-color-outline-variant);
-    color: var(--md-sys-color-on-surface);
-    scroll-margin-top: 40px;
-  }
-
-  .blog-comments > h2 {
-    margin: 0 0 24px;
-    font-size: 1.5rem;
-  }
-
-  .blog-comments-feedback,
-  .blog-comments-noscript {
-    color: var(--md-sys-color-on-surface-variant);
-    font-size: 1rem;
-  }
-
-  .blog-comments-feedback[hidden],
-  .blog-comments-retry[hidden] {
-    display: none;
-  }
-
-  .blog-comments-retry {
-    min-height: 44px;
-    margin-top: 12px;
-    padding: 10px 20px;
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: var(--shape-full);
-    background: var(--md-sys-color-surface-container-low);
-    color: var(--md-sys-color-primary);
-    cursor: pointer;
-    font: inherit;
-  }
-
-  #twikoo-comments {
-    color: var(--md-sys-color-on-surface);
-    font-size: 1rem;
-    overflow-wrap: anywhere;
-    --twikoo-theme: var(--md-sys-color-primary);
-  }
-
-  #twikoo-comments .el-input__inner,
-  #twikoo-comments .el-textarea__inner {
-    background: var(--md-sys-color-surface-container-low);
-    border-color: var(--md-sys-color-outline-variant);
-    border-radius: var(--shape-md);
-    color: var(--md-sys-color-on-surface);
-    font: inherit;
-  }
-
-  #twikoo-comments .el-input__inner::placeholder,
-  #twikoo-comments .el-textarea__inner::placeholder {
-    color: var(--md-sys-color-on-surface-variant);
-  }
-
-  #twikoo-comments .el-input__inner:focus,
-  #twikoo-comments .el-textarea__inner:focus {
-    border-color: var(--md-sys-color-primary);
-  }
-
-  #twikoo-comments .el-input-group__prepend {
-    background: var(--md-sys-color-surface-container);
-    border-color: var(--md-sys-color-outline-variant);
-    color: var(--md-sys-color-on-surface-variant);
-    font-size: 0.875rem;
-  }
-
-  #twikoo-comments .el-button {
-    min-height: 40px;
-    border-radius: var(--shape-full);
-    font-size: 0.875rem;
-  }
-
-  #twikoo-comments .el-button--primary {
-    background: var(--md-sys-color-primary);
-    border-color: var(--md-sys-color-primary);
-    color: var(--md-sys-color-on-primary);
-  }
-
-  #twikoo-comments .el-button--default,
-  #twikoo-comments .tk-preview-container,
-  #twikoo-comments .tk-admin-container {
-    background: var(--md-sys-color-surface-container-low);
-    border-color: var(--md-sys-color-outline-variant);
-    color: var(--md-sys-color-on-surface);
-  }
-
-  #twikoo-comments .tk-action-icon,
-  #twikoo-comments .tk-nick,
-  #twikoo-comments .tk-comment a {
-    color: var(--md-sys-color-primary);
-  }
-
-  #twikoo-comments .tk-meta-input .el-input {
-    min-width: 0;
-  }
-
-  @media (max-width: 599px) {
-    #twikoo-comments .tk-meta-input {
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    #twikoo-comments .tk-meta-input .el-input {
-      width: 100%;
-      margin-inline: 0;
-    }
-  }
-</style>
