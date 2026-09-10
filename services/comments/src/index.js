@@ -56,7 +56,7 @@ export default {
           return Response.json({ code: 1000, message: '请检查昵称和评论内容 / Check your name and comment.' }, { headers });
         }
       }
-      const result = await createTwikooHandler().fetch(request, env);
+      const result = await createTwikooHandler({ qmsgQQ: env.QMSG_QQ }).fetch(request, env);
       const response = new Response(result.body, result);
       for (const [name, value] of Object.entries(headers)) response.headers.set(name, value);
       return response;

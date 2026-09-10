@@ -5,7 +5,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid' // 用户 id 生成
-import xss from 'xss'
+import { sanitizeComment } from './sanitize.js'
 
 import {
   getCheerio,
@@ -39,7 +39,7 @@ import {
   commentImportTwikoo
 } from 'twikoo-func/utils/import'
 import { postCheckSpam } from 'twikoo-func/utils/spam'
-import { sendNotice, emailTest } from 'twikoo-func/utils/notify'
+import { sendNotice, emailTest } from './notify.js'
 import { uploadImage } from 'twikoo-func/utils/image'
 import logger from 'twikoo-func/utils/logger'
 import twikooFuncPkg from 'twikoo-func/package.json'
@@ -135,7 +135,7 @@ const VERSION = twikooFuncPkg.version
 // Isolate authentication and configuration across concurrent Worker requests.
 const requestTimes = new Map()
 
-export function createTwikooHandler () {
+export function createTwikooHandler ({ qmsgQQ } = {}) {
 let config
 let accessToken
 let currentRequestGeo = { ip: null, region: '' }
@@ -916,7 +916,7 @@ async function postSubmit (comment) {
   const isSpam = await postCheckSpam(comment, config) ?? false
   await saveSpamCheckResult(comment, isSpam)
   // 发送通知
-  await sendNotice(comment, config, getParentComment)
+  await sendNotice(comment, config, getParentComment, qmsgQQ)
   return { code: RES_CODE.SUCCESS }
 }
 
@@ -940,7 +940,7 @@ async function parse (comment, request) {
     master: isBloggerMail,
     url: comment.url,
     href: comment.href,
-    comment: xss(comment.comment),
+    comment: sanitizeComment(comment.comment),
     pid: comment.pid ? comment.pid : comment.rid,
     rid: comment.rid,
     isSpam: isAdminUser ? false : preCheckSpam(comment, config),

@@ -23,6 +23,9 @@ const text = {
     manage: "管理评论",
     close: "关闭评论管理",
     markdown: "Markdown 格式帮助",
+    copy: "复制",
+    copied: "已复制",
+    copyError: "请手动复制",
     loading: "正在加载评论…",
     unavailable: "评论暂时无法加载，请稍后重试。",
     retry: "重新加载",
@@ -36,6 +39,9 @@ const text = {
     manage: "Manage comments",
     close: "Close comment management",
     markdown: "Markdown formatting help",
+    copy: "Copy",
+    copied: "Copied",
+    copyError: "Copy manually",
     loading: "Loading comments…",
     unavailable: "Comments could not be loaded. Please try again.",
     retry: "Try again",
@@ -61,6 +67,10 @@ const text = {
   data-manage-label={text.manage}
   data-close-label={text.close}
   data-markdown-label={text.markdown}
+  data-prismjs-copy={text.copy}
+  data-prismjs-copy-success={text.copied}
+  data-prismjs-copy-error={text.copyError}
+  data-prismjs-copy-timeout="2500"
 >
   <header class="blog-comments-header">
     <span class="blog-comments-mark" aria-hidden="true">

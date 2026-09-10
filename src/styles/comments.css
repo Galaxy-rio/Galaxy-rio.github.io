@@ -446,10 +446,12 @@
 
 #comments .tk-content pre,
 #comments .tk-preview-container pre {
+  margin-block: var(--space-4);
   overflow-x: auto;
-  padding: var(--space-4);
-  border-radius: var(--shape-md);
-  background: var(--md-sys-color-surface-container-highest);
+  padding: var(--space-5);
+  border-radius: var(--shape-lg);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
 }
 
 #comments .tk-content code,
@@ -457,13 +459,170 @@
   padding: 2px 5px;
   border-radius: var(--shape-xs);
   background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
   font-family: var(--font-mono);
   font-size: 0.875em;
+}
+
+#comments :is(.tk-content, .tk-preview-container) :is(pre, code, .token) {
+  /* Prism's default theme adds a white shadow, including in dark mode. */
+  text-shadow: none;
 }
 
 #comments .tk-content pre code,
 #comments .tk-preview-container pre code {
   padding: 0;
+  border-radius: 0;
+  background: transparent;
+  line-height: 1.7;
+}
+
+/* Higher specificity also covers Prism styles loaded after the site CSS. */
+#comments :is(.tk-content, .tk-preview-container) .token {
+  background: transparent;
+  color: inherit;
+}
+
+#comments :is(.tk-content, .tk-preview-container) .token:is(
+  .comment, .prolog, .doctype, .cdata, .punctuation, .operator
+) {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .token:is(
+  .keyword, .atrule, .attr-name, .selector, .important
+) {
+  color: var(--md-sys-color-primary);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .token:is(
+  .function, .class-name, .tag, .builtin
+) {
+  color: var(--md-sys-color-tertiary);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .token:is(
+  .string, .char, .attr-value, .regex, .url, .inserted
+) {
+  color: var(--md-sys-color-secondary);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .token:is(
+  .number, .boolean, .constant, .symbol, .property, .deleted
+) {
+  color: var(--md-sys-color-error);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .code-toolbar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  margin-block: var(--space-4);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--shape-lg);
+  background: var(--md-sys-color-surface-container);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .code-toolbar > pre {
+  margin: 0;
+  border-radius: 0;
+}
+
+#comments :is(.tk-content, .tk-preview-container) .code-toolbar > .toolbar {
+  position: static;
+  z-index: auto;
+  display: flex;
+  min-width: 0;
+  min-height: 64px;
+  order: -1;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface-container-high);
+  opacity: 1;
+  transition: none;
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar > .toolbar-item {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar > .toolbar-item:has(> span) {
+  margin-inline-end: auto;
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > span {
+  padding: 0 var(--space-2);
+  border-radius: 0;
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  box-shadow: none;
+  font-family: var(--font-sans);
+  font-size: var(--md-sys-typescale-label-medium-size);
+  font-weight: 600;
+  line-height: var(--md-sys-typescale-label-medium-line-height);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > button {
+  position: relative;
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--shape-full);
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  box-shadow: none;
+  font-family: var(--font-sans);
+  font-size: var(--md-sys-typescale-label-large-size);
+  font-weight: 650;
+  line-height: var(--md-sys-typescale-label-large-line-height);
+  cursor: pointer;
+  isolation: isolate;
+  transition: border-radius var(--motion-duration-medium) var(--motion-expressive);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > button::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  content: "";
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-duration-short) var(--motion-standard);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > button:hover::before {
+  opacity: var(--state-hover-opacity);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > button:is(:focus-visible, :active)::before {
+  opacity: var(--state-pressed-opacity);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > button:focus-visible {
+  outline: 3px solid var(--md-sys-color-primary);
+  outline-offset: 3px;
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > button:active {
+  border-radius: var(--shape-lg);
+}
+
+#comments :is(.tk-content, .tk-preview-container) .toolbar-item > button[data-copy-state="copy-success"] {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
 }
 
 #comments .tk-content img {
