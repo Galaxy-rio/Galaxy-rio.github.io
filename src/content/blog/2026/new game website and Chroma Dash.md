@@ -13,7 +13,7 @@ tags:
   - game
   - web
   - color
-featured: true
+featured: false
 status: publish
 links: []
 ---
