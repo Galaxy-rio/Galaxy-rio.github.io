@@ -10,7 +10,7 @@ time: "20:00"
 category: handcraft
 series:
 tags: []
-featured: true
+featured: false
 status: publish
 links: []
 ---
