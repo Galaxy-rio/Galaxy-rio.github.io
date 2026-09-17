@@ -1,7 +1,7 @@
 ---
 title: 留言板
 summary: 公开留言板
-cover:
+cover: "https://img.galaxyrio.top/media/2026/09/8742947b6cdbf0e60f76ecfc4062baa9.png"
 language: zh
 translationKey: message test
 author: galaxyrio
